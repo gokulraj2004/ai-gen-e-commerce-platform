@@ -1,0 +1,112 @@
+{
+  "project_name": "E-Commerce Platform",
+  "tech_stack": {
+    "project_name": "E-Commerce Platform",
+    "frontend": {
+      "framework": "React",
+      "language": "TypeScript",
+      "styling": "TailwindCSS",
+      "package_manager": "npm"
+    },
+    "backend": {
+      "framework": "FastAPI",
+      "language": "Python",
+      "orm": "SQLAlchemy"
+    },
+    "database": {
+      "db_type": "PostgreSQL",
+      "version": "15"
+    },
+    "features": [
+      "Authentication (JWT)",
+      "Docker support (Dockerfile + docker-compose)",
+      "CI/CD (GitHub Actions)",
+      "README with setup instructions",
+      "Environment variables (.env.example)"
+    ],
+    "architecture_type": "monolithic",
+    "service_connection_urls": [
+      "http://api.example.com"
+    ],
+    "environments": [
+      "development",
+      "staging",
+      "production"
+    ],
+    "github_repository": "github_backend_repo"
+  },
+  "quality_score": 56,
+  "passed": false,
+  "files_created": 66,
+  "token_usage": {
+    "total_input_tokens": 213601,
+    "total_output_tokens": 62132,
+    "total_tokens": 275733,
+    "api_calls": 9,
+    "calls": [
+      {
+        "agent": "generator",
+        "input_tokens": 11221,
+        "output_tokens": 16000,
+        "duration_seconds": 150.31
+      },
+      {
+        "agent": "reviewer",
+        "input_tokens": 27048,
+        "output_tokens": 2724,
+        "duration_seconds": 42.85
+      },
+      {
+        "agent": "security",
+        "input_tokens": 16590,
+        "output_tokens": 2590,
+        "duration_seconds": 54.66
+      },
+      {
+        "agent": "fixer",
+        "input_tokens": 7707,
+        "output_tokens": 16000,
+        "duration_seconds": 146.07
+      },
+      {
+        "agent": "reviewer",
+        "input_tokens": 38752,
+        "output_tokens": 3233,
+        "duration_seconds": 58.83
+      },
+      {
+        "agent": "security",
+        "input_tokens": 28294,
+        "output_tokens": 2750,
+        "duration_seconds": 64.79
+      },
+      {
+        "agent": "fixer",
+        "input_tokens": 11437,
+        "output_tokens": 16000,
+        "duration_seconds": 143.32
+      },
+      {
+        "agent": "security",
+        "input_tokens": 31055,
+        "output_tokens": 2099,
+        "duration_seconds": 53.93
+      },
+      {
+        "agent": "evaluator",
+        "input_tokens": 41497,
+        "output_tokens": 736,
+        "duration_seconds": 26.54
+      }
+    ]
+  },
+  "duration_seconds": 651.52,
+  "created_at": "2026-04-07T09:04:20.032583+00:00",
+  "enhancements": {
+    "parallel_review": true,
+    "chunked_generation": false,
+    "checkpointing": true,
+    "incremental_fixing": true,
+    "validator": true
+  }
+}

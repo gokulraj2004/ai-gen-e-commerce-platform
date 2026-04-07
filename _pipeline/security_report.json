@@ -1,0 +1,105 @@
+{
+  "vulnerabilities": [
+    {
+      "severity": "medium",
+      "category": "secrets",
+      "file": ".env.example",
+      "description": "The .env.example file contains placeholder secrets (CHANGE_ME_GENERATE_WITH_...) that could be accidentally used as-is in production. While the comments warn to change them, there is no runtime enforcement visible in the provided code to reject these default values.",
+      "fix": "The backend config (not fully shown) should validate at startup that SECRET_KEY, JWT_SECRET_KEY, and DB_PASSWORD are not the default placeholder values. The .env.example comments already instruct users to change them, which is good."
+    },
+    {
+      "severity": "low",
+      "category": "secrets",
+      "file": ".github/workflows/ci-cd.yml",
+      "description": "CI/CD pipeline contains hardcoded test credentials ('test-ci-password-not-for-prod', 'ci-test-secret-key-not-for-prod'). While clearly labeled as not for production and only used in ephemeral CI containers, it's better practice to use GitHub Actions secrets even for test environments.",
+      "fix": "Use GitHub Actions secrets (e.g., ${{ secrets.CI_TEST_DB_PASSWORD }}) or accept the risk since these are ephemeral CI-only values clearly labeled as non-production."
+    },
+    {
+      "severity": "medium",
+      "category": "docker_security",
+      "file": "frontend/Dockerfile",
+      "description": "The nginx container runs as root by default. The builder stage also runs as root. No USER directive is specified for the final stage.",
+      "fix": "Add 'USER nginx' or create a non-root user in the final stage. For nginx:alpine, configure nginx to run as non-root: adjust nginx.conf to listen on a non-privileged port or use the official nginx unprivileged image (nginxinc/nginx-unprivileged)."
+    },
+    {
+      "severity": "medium",
+      "category": "cors_headers",
+      "file": "frontend/nginx.conf",
+      "description": "The Content-Security-Policy connect-src directive is hardcoded to 'http://localhost:8000', which is development-only. In production, this would either block real API calls or need to be updated. Also, the CSP allows 'unsafe-inline' for style-src, which weakens XSS protection.",
+      "fix": "Use environment-variable substitution in nginx.conf (via envsubst) to set connect-src dynamically. Consider removing 'unsafe-inline' from style-src by using nonces or hashes for inline styles, or accept the risk if Tailwind requires it."
+    },
+    {
+      "severity": "low",
+      "category": "cors_headers",
+      "file": "frontend/nginx.conf",
+      "description": "Missing HSTS (Strict-Transport-Security) header. While the frontend serves over HTTP (port 80), in production behind TLS this header should be present.",
+      "fix": "Add 'add_header Strict-Transport-Security \"max-age=31536000; includeSubDomains\" always;' when serving over HTTPS in production."
+    },
+    {
+      "severity": "low",
+      "category": "docker_security",
+      "file": "frontend/nginx.conf",
+      "description": "The static asset location block uses 'add_header' which overrides the security headers defined in the parent server block (nginx behavior). Static assets served from the ~* location will NOT have X-Content-Type-Options, X-Frame-Options, CSP, etc.",
+      "fix": "Repeat the security headers inside the static asset location block, or use the 'always' flag in a shared include file, or move security headers to a separate included snippet that is applied in all location blocks."
+    },
+    {
+      "severity": "low",
+      "category": "docker_security",
+      "file": "docker-compose.yml",
+      "description": "The backend service mounts the entire source directory as a volume (./backend:/app). This is acceptable for development but should not be used in production as it could expose source code and allow container-to-host filesystem writes.",
+      "fix": "Remove the volume mount in production docker-compose configuration. Use a separate docker-compose.prod.yml without the source mount."
+    },
+    {
+      "severity": "low",
+      "category": "docker_security",
+      "file": ".github/workflows/ci-cd.yml",
+      "description": "Docker images are tagged with both :latest and :sha. Using :latest in deployments can lead to unpredictable behavior. However, the SHA tag is also provided which is good practice.",
+      "fix": "Ensure deployment configurations reference the SHA-tagged image rather than :latest. The current setup provides both, which is acceptable."
+    },
+    {
+      "severity": "low",
+      "category": "input_validation",
+      "file": "frontend/src/components/orders/CheckoutForm.tsx",
+      "description": "Checkout form only validates that fields are non-empty. No format validation for ZIP code, state abbreviation, or country code. While backend should validate, defense-in-depth suggests frontend validation too.",
+      "fix": "Add format validation for ZIP code (e.g., regex for US ZIP), state (2-letter code), and country (ISO country code) on the frontend."
+    },
+    {
+      "severity": "medium",
+      "category": "authentication",
+      "file": "frontend/src/context/AuthContext.tsx",
+      "description": "Refresh tokens are stored only in JavaScript memory (via setRefreshToken). While this is actually more secure than localStorage against XSS, it means tokens are lost on page refresh, causing users to be logged out. The initAuth function tries to use getRefreshToken() but it will always be null after a page reload. This is a UX issue but also means the refresh token mechanism is effectively broken for page reloads.",
+      "fix": "This is a deliberate security-conscious design choice (in-memory only). If persistence is needed, consider using httpOnly secure cookies for refresh tokens (set by the backend), which provides both persistence and XSS protection."
+    },
+    {
+      "severity": "low",
+      "category": "xss",
+      "file": "frontend/src/components/auth/LoginForm.tsx",
+      "description": "API error messages from the server are rendered directly in the UI via {apiError}. React auto-escapes JSX expressions, so this is safe from XSS. However, displaying raw server error messages could leak internal implementation details.",
+      "fix": "Map known error codes to user-friendly messages rather than displaying raw server error details. The current fallback message pattern is acceptable."
+    }
+  ],
+  "score": 78,
+  "passed_checks": [
+    "No hardcoded production secrets - .env.example uses clear placeholder values with change instructions",
+    "No SQL injection risk - frontend uses parameterized API calls via axios, backend uses SQLAlchemy ORM (implied)",
+    "XSS protection - React auto-escapes JSX expressions; no use of dangerouslySetInnerHTML",
+    "JWT configuration uses HS256 with configurable expiry (30min access, 7 day refresh) - reasonable defaults",
+    "Protected routes implemented via ProtectedRoute component checking authentication state",
+    "CORS origins are configurable via environment variable, not hardcoded to allow-all",
+    "Frontend .dockerignore excludes .env files and node_modules",
+    "Docker Compose uses health checks for all services",
+    "Database port bound to 127.0.0.1 only (localhost) in docker-compose",
+    "PostgreSQL image uses pinned version (15-alpine) not just :latest",
+    "Frontend Dockerfile uses multi-stage build, minimizing final image size and attack surface",
+    "Password validation enforces minimum 8 chars, uppercase, lowercase, and number requirements",
+    "Access tokens stored in memory only (not localStorage), reducing XSS token theft risk",
+    "Refresh token sent in request body (not URL parameters), avoiding token leakage in logs",
+    "Axios client has request timeout configured (15 seconds)",
+    "Source maps disabled in production build (sourcemap: false)",
+    "Security headers configured in nginx (X-Content-Type-Options, X-Frame-Options, X-XSS-Protection, Referrer-Policy, CSP, Permissions-Policy)",
+    "No sensitive data exposed in frontend TypeScript types or API responses",
+    "Docker Compose uses env_file for secrets rather than hardcoding in docker-compose.yml",
+    "CI/CD uses GITHUB_TOKEN for registry auth (not hardcoded credentials)",
+    "Node.js and Python versions are pinned in CI/CD pipeline"
+  ]
+}
