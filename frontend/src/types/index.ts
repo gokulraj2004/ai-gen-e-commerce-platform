@@ -1,5 +1,29 @@
-export type { User, LoginRequest, RegisterRequest, TokenResponse, UpdateProfileRequest, AuthContextType } from './auth';
-export type { Product, Category, ProductListParams, ProductFilters, ProductListResponse } from './product';
-export type { Cart, CartItem, CartItemAdd, CartItemUpdate } from './cart';
-export type { Order, OrderItem, OrderCreate, OrderStatusUpdate, ShippingAddress, OrderListResponse } from './order';
-export type { PaginatedResponse, ApiError } from './api';
+export type {
+  User,
+  LoginRequest,
+  RegisterRequest,
+  UpdateProfileRequest,
+  TokenResponse,
+  RefreshRequest,
+  LogoutRequest,
+} from './auth';
+
+export type {
+  PaginatedResponse,
+  MessageResponse,
+  ErrorResponse,
+  ApiError,
+} from './api';
+
+/**
+ * EXAMPLE re-exports — DELETE these when removing example entities.
+ */
+export type {
+  Item,
+  Tag,
+  ItemCreateRequest,
+  ItemUpdateRequest,
+  TagCreateRequest,
+  ItemsQueryParams,
+  ItemSortBy,
+} from './examples';

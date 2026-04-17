@@ -1,119 +1,144 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { useAuth } from '../../hooks/useAuth';
-import Input from '../ui/Input';
-import Button from '../ui/Button';
-import { validateEmail, validatePassword, validateRequired, validatePasswordMatch } from '../../utils/validators';
+import { validateEmail, validateRequired, validatePassword, validatePasswordMatch } from '../../utils/validators';
 
-const RegisterForm: React.FC = () => {
-  const { register } = useAuth();
-  const [formData, setFormData] = useState({
-    first_name: '',
-    last_name: '',
-    email: '',
-    password: '',
-    confirmPassword: '',
-  });
+interface RegisterFormProps {
+  onSubmit: (data: { email: string; password: string; first_name: string; last_name: string }) => Promise<void>;
+  isLoading?: boolean;
+  error?: string | null;
+}
+
+const RegisterForm: React.FC<RegisterFormProps> = ({ onSubmit, isLoading = false, error }) => {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [firstName, setFirstName] = useState('');
+  const [lastName, setLastName] = useState('');
   const [errors, setErrors] = useState<Record<string, string | null>>({});
-  const [apiError, setApiError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
 
-  const handleChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData((prev) => ({ ...prev, [field]: e.target.value }));
-    setErrors((prev) => ({ ...prev, [field]: null }));
+  const validate = (): boolean => {
+    const newErrors: Record<string, string | null> = {
+      email: validateEmail(email),
+      password: validatePassword(password),
+      confirmPassword: validatePasswordMatch(password, confirmPassword),
+      firstName: validateRequired(firstName, 'First name'),
+      lastName: validateRequired(lastName, 'Last name'),
+    };
+
+    setErrors(newErrors);
+    return !Object.values(newErrors).some((e) => e !== null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setApiError(null);
+    if (!validate()) return;
 
-    const newErrors: Record<string, string | null> = {
-      first_name: validateRequired(formData.first_name, 'First name'),
-      last_name: validateRequired(formData.last_name, 'Last name'),
-      email: validateEmail(formData.email),
-      password: validatePassword(formData.password),
-      confirmPassword: validatePasswordMatch(formData.password, formData.confirmPassword),
-    };
-
-    setErrors(newErrors);
-
-    const hasErrors = Object.values(newErrors).some((err) => err !== null);
-    if (hasErrors) {
-      return;
-    }
-
-    setIsLoading(true);
-    try {
-      await register({
-        first_name: formData.first_name,
-        last_name: formData.last_name,
-        email: formData.email,
-        password: formData.password,
-      });
-    } catch (err: unknown) {
-      const error = err as { response?: { data?: { detail?: string } } };
-      setApiError(error.response?.data?.detail || 'Registration failed. Please try again.');
-    } finally {
-      setIsLoading(false);
-    }
+    await onSubmit({
+      email,
+      password,
+      first_name: firstName,
+      last_name: lastName,
+    });
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
-      {apiError && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-md text-sm">
-          {apiError}
+    <form onSubmit={handleSubmit} className="space-y-4 w-full max-w-md" noValidate>
+      <h2 className="text-2xl font-bold text-center">Create Account</h2>
+
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded" role="alert">
+          {error}
         </div>
       )}
+
       <div className="grid grid-cols-2 gap-4">
-        <Input
-          label="First Name"
-          value={formData.first_name}
-          onChange={handleChange('first_name')}
-          error={errors.first_name}
-          placeholder="John"
-        />
-        <Input
-          label="Last Name"
-          value={formData.last_name}
-          onChange={handleChange('last_name')}
-          error={errors.last_name}
-          placeholder="Doe"
-        />
+        <div>
+          <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
+            First Name
+          </label>
+          <input
+            id="firstName"
+            type="text"
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+            disabled={isLoading}
+            required
+          />
+          {errors.firstName && <p className="mt-1 text-sm text-red-600">{errors.firstName}</p>}
+        </div>
+
+        <div>
+          <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
+            Last Name
+          </label>
+          <input
+            id="lastName"
+            type="text"
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+            disabled={isLoading}
+            required
+          />
+          {errors.lastName && <p className="mt-1 text-sm text-red-600">{errors.lastName}</p>}
+        </div>
       </div>
-      <Input
-        label="Email"
-        type="email"
-        value={formData.email}
-        onChange={handleChange('email')}
-        error={errors.email}
-        placeholder="you@example.com"
-      />
-      <Input
-        label="Password"
-        type="password"
-        value={formData.password}
-        onChange={handleChange('password')}
-        error={errors.password}
-        placeholder="••••••••"
-      />
-      <Input
-        label="Confirm Password"
-        type="password"
-        value={formData.confirmPassword}
-        onChange={handleChange('confirmPassword')}
-        error={errors.confirmPassword}
-        placeholder="••••••••"
-      />
-      <Button type="submit" isLoading={isLoading} className="w-full">
-        Create Account
-      </Button>
-      <p className="text-center text-sm text-gray-600">
-        Already have an account?{' '}
-        <Link to="/login" className="text-primary-600 hover:text-primary-500 font-medium">
-          Sign in
-        </Link>
-      </p>
+
+      <div>
+        <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+          Email
+        </label>
+        <input
+          id="email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+          disabled={isLoading}
+          required
+        />
+        {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
+      </div>
+
+      <div>
+        <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+          Password
+        </label>
+        <input
+          id="password"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+          disabled={isLoading}
+          required
+        />
+        {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
+      </div>
+
+      <div>
+        <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+          Confirm Password
+        </label>
+        <input
+          id="confirmPassword"
+          type="password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+          disabled={isLoading}
+          required
+        />
+        {errors.confirmPassword && <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>}
+      </div>
+
+      <button
+        type="submit"
+        disabled={isLoading}
+        className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {isLoading ? 'Creating account...' : 'Create Account'}
+      </button>
     </form>
   );
 };

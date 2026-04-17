@@ -1,152 +1,92 @@
 import React, { createContext, useState, useEffect, useCallback } from 'react';
-import type { User, LoginRequest, RegisterRequest, AuthContextType } from '../types/auth';
-import apiClient from '../api/client';
-import { setRefreshToken, getRefreshToken } from '../api/client';
+import axios from 'axios';
 
-export const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
+
+interface User {
+  id: string;
+  email: string;
+  full_name: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface AuthContextType {
+  user: User | null;
+  isAuthenticated: boolean;
+  isLoading: boolean;
+  login: (email: string, password: string) => Promise<void>;
+  register: (email: string, password: string, fullName: string) => Promise<void>;
+  logout: () => Promise<void>;
+}
+
+export const AuthContext = createContext<AuthContextType | null>(null);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [accessToken, setAccessToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const isAuthenticated = !!user && !!accessToken;
-
-  // Set up axios interceptor to use in-memory token
-  useEffect(() => {
-    const requestInterceptor = apiClient.interceptors.request.use(
-      (config) => {
-        if (accessToken && config.headers) {
-          config.headers.Authorization = `Bearer ${accessToken}`;
-        }
-        return config;
-      },
-      (error) => Promise.reject(error)
-    );
-
-    return () => {
-      apiClient.interceptors.request.eject(requestInterceptor);
-    };
-  }, [accessToken]);
-
-  // Listen for token refresh events from the interceptor
-  useEffect(() => {
-    const handleTokenRefreshed = (event: Event) => {
-      const customEvent = event as CustomEvent;
-      const { access_token, refresh_token } = customEvent.detail;
-      setAccessToken(access_token);
-      if (refresh_token) {
-        setRefreshToken(refresh_token);
-      }
-    };
-
-    const handleAuthError = () => {
-      setUser(null);
-      setAccessToken(null);
-      setRefreshToken(null);
-    };
-
-    window.addEventListener('token-refreshed', handleTokenRefreshed);
-    window.addEventListener('auth-error', handleAuthError);
-
-    return () => {
-      window.removeEventListener('token-refreshed', handleTokenRefreshed);
-      window.removeEventListener('auth-error', handleAuthError);
-    };
-  }, []);
+  const isAuthenticated = !!user;
 
   const fetchUser = useCallback(async () => {
+    const token = localStorage.getItem('access_token');
+    if (!token) {
+      setIsLoading(false);
+      return;
+    }
     try {
-      const response = await apiClient.get('/auth/me');
+      const response = await axios.get(`${API_BASE_URL}/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       setUser(response.data);
     } catch {
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
       setUser(null);
-      setAccessToken(null);
-      setRefreshToken(null);
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    const initAuth = async () => {
-      const storedRefreshToken = getRefreshToken();
-      if (!storedRefreshToken) {
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        const response = await apiClient.post('/auth/refresh', {
-          refresh_token: storedRefreshToken,
-        });
-        const { access_token, refresh_token: newRefreshToken } = response.data;
-        setAccessToken(access_token);
-        setRefreshToken(newRefreshToken);
-
-        // Temporarily set the token for the getMe call
-        apiClient.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
-        const meResponse = await apiClient.get('/auth/me');
-        delete apiClient.defaults.headers.common['Authorization'];
-        setUser(meResponse.data);
-      } catch {
-        setUser(null);
-        setAccessToken(null);
-        setRefreshToken(null);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    initAuth();
+    fetchUser();
   }, [fetchUser]);
 
-  const login = async (data: LoginRequest) => {
-    const response = await apiClient.post('/auth/login', data);
-    const { access_token, refresh_token } = response.data;
-    setAccessToken(access_token);
-    setRefreshToken(refresh_token);
-
-    // Fetch user data after login
-    apiClient.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
-    const meResponse = await apiClient.get('/auth/me');
-    delete apiClient.defaults.headers.common['Authorization'];
-    setUser(meResponse.data);
+  const login = async (email: string, password: string) => {
+    const response = await axios.post(`${API_BASE_URL}/auth/login`, { email, password });
+    localStorage.setItem('access_token', response.data.access_token);
+    localStorage.setItem('refresh_token', response.data.refresh_token);
+    await fetchUser();
   };
 
-  const register = async (data: RegisterRequest) => {
-    // Register returns a User object, not tokens. So we need to login after registration.
-    await apiClient.post('/auth/register', data);
-
-    // Now login with the same credentials
-    const loginResponse = await apiClient.post('/auth/login', {
-      email: data.email,
-      password: data.password,
+  const register = async (email: string, password: string, fullName: string) => {
+    await axios.post(`${API_BASE_URL}/auth/register`, {
+      email,
+      password,
+      full_name: fullName,
     });
-    const { access_token, refresh_token } = loginResponse.data;
-    setAccessToken(access_token);
-    setRefreshToken(refresh_token);
-
-    // Fetch user data
-    apiClient.defaults.headers.common['Authorization'] = `Bearer ${access_token}`;
-    const meResponse = await apiClient.get('/auth/me');
-    delete apiClient.defaults.headers.common['Authorization'];
-    setUser(meResponse.data);
   };
 
   const logout = async () => {
+    const refreshToken = localStorage.getItem('refresh_token');
+    const accessToken = localStorage.getItem('access_token');
     try {
-      const currentRefreshToken = getRefreshToken();
-      if (currentRefreshToken) {
-        await apiClient.post('/auth/logout', { refresh_token: currentRefreshToken });
+      if (refreshToken && accessToken) {
+        await axios.post(
+          `${API_BASE_URL}/auth/logout`,
+          { refresh_token: refreshToken },
+          { headers: { Authorization: `Bearer ${accessToken}` } },
+        );
       }
-    } catch {
-      // ignore logout errors
+    } finally {
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      setUser(null);
     }
-    setUser(null);
-    setAccessToken(null);
-    setRefreshToken(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, isAuthenticated, isLoading, login, register, logout, accessToken }}>
+    <AuthContext.Provider value={{ user, isAuthenticated, isLoading, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );

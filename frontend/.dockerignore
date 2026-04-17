@@ -1,7 +1,38 @@
+# Dependencies
 node_modules/
+
+# Build output
 dist/
+build/
+
+# Environment
 .env
-.env.local
+.env.*
+!.env.example
+
+# Version control
 .git/
-*.md
+.gitignore
+
+# IDE
 .vscode/
+.idea/
+*.swp
+*.swo
+
+# Testing
+coverage/
+.vitest/
+
+# Documentation
+*.md
+LICENSE
+
+# Docker
+Dockerfile
+.dockerignore
+docker-compose*.yml
+
+# OS files
+.DS_Store
+Thumbs.db

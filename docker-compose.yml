@@ -7,14 +7,15 @@ services:
       dockerfile: Dockerfile
     container_name: e-commerce-platform-backend
     ports:
-      - "8000:8000"
+      - "${BACKEND_PORT:-8000}:8000"
     env_file:
       - .env
+    environment:
+      # Override DB_HOST to use the Docker service name
+      DB_HOST: db
     depends_on:
       db:
         condition: service_healthy
-    volumes:
-      - ./backend:/app
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')"]
@@ -34,7 +35,7 @@ services:
       - backend
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:80"]
+      test: ["CMD", "curl", "-f", "http://localhost:80"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -42,21 +43,21 @@ services:
   db:
     image: postgres:15-alpine
     container_name: e-commerce-platform-db
-    # Only expose to localhost for development; remove entirely in production
     ports:
-      - "127.0.0.1:5432:5432"
+      - "127.0.0.1:${DB_PORT:-5432}:5432"
     environment:
-      POSTGRES_USER: ${DB_USER}
-      POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+      POSTGRES_DB: ${DB_NAME:-e_commerce_platform}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-e_commerce_platform}"]
       interval: 10s
       timeout: 5s
       retries: 5
 
 volumes:
   postgres_data:
+    driver: local

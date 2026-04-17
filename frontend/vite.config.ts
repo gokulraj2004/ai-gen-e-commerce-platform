@@ -15,11 +15,18 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:8000',
         changeOrigin: true,
+        secure: false,
       },
     },
   },
   build: {
     outDir: 'dist',
     sourcemap: false,
+    minify: 'esbuild',
+  },
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: [],
   },
 });

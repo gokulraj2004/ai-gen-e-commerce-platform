@@ -1,0 +1,11 @@
+# Development overrides — NOT for production use.
+# This file is automatically loaded by docker-compose alongside docker-compose.yml.
+version: "3.8"
+
+services:
+  backend:
+    volumes:
+      - ./backend:/app
+    environment:
+      APP_ENV: development
+      DEBUG: "true"

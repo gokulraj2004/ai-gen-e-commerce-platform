@@ -1,0 +1,24 @@
+"""
+CORS middleware configuration.
+This is a CORE module — KEEP for your application.
+"""
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from app.config import settings
+
+
+def setup_cors(app: FastAPI) -> None:
+    """
+    Configure CORS middleware on the FastAPI application.
+    Allowed origins are read from the cors_origins setting.
+    """
+    origins = settings.cors_origin_list
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )

@@ -1,8 +1,11 @@
-# Pipeline internals -- not needed by downstream developers
-_pipeline/checkpoints/
+# Pipeline internals
+_pipeline/
 __pycache__/
 *.pyc
 .env
 *.egg-info/
 .venv/
 node_modules/
+dist/
+build/
+.DS_Store

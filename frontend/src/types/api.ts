@@ -6,7 +6,16 @@ export interface PaginatedResponse<T> {
   total_pages: number;
 }
 
-export interface ApiError {
+export interface MessageResponse {
+  message: string;
+}
+
+export interface ErrorResponse {
   detail: string;
-  status_code?: number;
+}
+
+export interface ApiError {
+  status: number;
+  message: string;
+  detail?: string;
 }

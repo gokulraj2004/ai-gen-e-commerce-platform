@@ -20,6 +20,11 @@ export interface RegisterRequest {
   last_name: string;
 }
 
+export interface UpdateProfileRequest {
+  first_name?: string;
+  last_name?: string;
+}
+
 export interface TokenResponse {
   access_token: string;
   refresh_token: string;
@@ -27,24 +32,10 @@ export interface TokenResponse {
   expires_in: number;
 }
 
-export interface AuthResponse {
-  access_token: string;
+export interface RefreshRequest {
   refresh_token: string;
-  token_type: string;
-  expires_in: number;
 }
 
-export interface UpdateProfileRequest {
-  first_name?: string;
-  last_name?: string;
-}
-
-export interface AuthContextType {
-  user: User | null;
-  isAuthenticated: boolean;
-  isLoading: boolean;
-  login: (data: LoginRequest) => Promise<void>;
-  register: (data: RegisterRequest) => Promise<void>;
-  logout: () => Promise<void>;
-  accessToken: string | null;
+export interface LogoutRequest {
+  refresh_token: string;
 }
