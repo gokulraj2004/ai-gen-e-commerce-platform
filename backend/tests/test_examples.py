@@ -55,6 +55,30 @@ async def test_list_items(client: AsyncClient, auth_headers: dict[str, str]) -> 
 
 
 @pytest.mark.asyncio
+async def test_list_items_default_pagination(client: AsyncClient, auth_headers: dict[str, str]) -> None:
+    """Test that default pagination is page=1 and per_page=20."""
+    response = await client.get("/api/v1/items", headers=auth_headers)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["page"] == 1
+    assert data["page_size"] == 20
+
+
+@pytest.mark.asyncio
+async def test_list_items_custom_pagination(client: AsyncClient, auth_headers: dict[str, str]) -> None:
+    """Test listing items with custom page and per_page parameters."""
+    response = await client.get(
+        "/api/v1/items",
+        headers=auth_headers,
+        params={"page": 2, "per_page": 5},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["page"] == 2
+    assert data["page_size"] == 5
+
+
+@pytest.mark.asyncio
 async def test_get_item(client: AsyncClient, auth_headers: dict[str, str]) -> None:
     """Test getting a single item by ID."""
     # Create an item
@@ -140,9 +164,6 @@ async def test_list_tags(client: AsyncClient, auth_headers: dict[str, str]) -> N
         json={"title": "Tagged Item", "tag_names": ["alpha", "beta"]},
     )
 
-    # Tags endpoint uses DbSession dependency (no auth for GET)
-    # But our route definition uses DbSession which doesn't require auth
-    # We need to pass through the dependency injection
     response = await client.get("/api/v1/tags")
     assert response.status_code == 200
     data = response.json()
@@ -205,7 +226,7 @@ async def test_items_pagination(client: AsyncClient, auth_headers: dict[str, str
     response = await client.get(
         "/api/v1/items",
         headers=auth_headers,
-        params={"page": 1, "page_size": 5},
+        params={"page": 1, "per_page": 5},
     )
     assert response.status_code == 200
     data = response.json()

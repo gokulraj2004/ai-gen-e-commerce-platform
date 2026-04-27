@@ -44,7 +44,7 @@ export type ItemSortBy = 'title_asc' | 'title_desc' | 'created_at_desc';
 
 export interface ItemsQueryParams {
   page?: number;
-  page_size?: number;
+  per_page?: number;
   search?: string;
   tags?: string[];
   sort_by?: ItemSortBy;

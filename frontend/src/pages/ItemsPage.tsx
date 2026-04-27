@@ -1,125 +1,117 @@
-import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import axios from 'axios';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
-
-interface Tag {
-  id: string;
-  name: string;
-}
-
-interface Item {
-  id: string;
-  title: string;
-  description: string;
-  tags: Tag[];
-  created_at: string;
-}
-
-interface PaginatedItems {
-  items: Item[];
-  total: number;
-  page: number;
-  page_size: number;
-  total_pages: number;
-}
+/**
+ * EXAMPLE PAGE — Items list page with pagination controls.
+ * DELETE this file and create your own domain pages.
+ */
+import React, { useState } from 'react';
+import { useItems } from '../hooks/useItems';
+import { Spinner } from '../components/ui/Spinner';
+import { Button } from '../components/ui/Button';
 
 const ItemsPage: React.FC = () => {
-  const [data, setData] = useState<PaginatedItems | null>(null);
   const [page, setPage] = useState(1);
-  const [search, setSearch] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [perPage] = useState(20);
 
-  useEffect(() => {
-    const fetchItems = async () => {
-      setIsLoading(true);
-      setError('');
-      try {
-        const params = new URLSearchParams({ page: String(page), page_size: '20' });
-        if (search) params.set('search', search);
-        const response = await axios.get(`${API_BASE_URL}/items?${params.toString()}`);
-        setData(response.data);
-      } catch {
-        setError('Failed to load items.');
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchItems();
-  }, [page, search]);
+  const { data, isLoading, isError, error } = useItems({ page, per_page: perPage });
+
+  const handlePrevious = () => {
+    setPage((prev) => Math.max(prev - 1, 1));
+  };
+
+  const handleNext = () => {
+    if (data && page < data.total_pages) {
+      setPage((prev) => prev + 1);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex min-h-[50vh] items-center justify-center">
+        <Spinner size="lg" />
+      </div>
+    );
+  }
+
+  if (isError) {
+    return (
+      <div className="rounded-md bg-red-50 p-4 text-sm text-red-700" role="alert">
+        {error instanceof Error ? error.message : 'Failed to load items.'}
+      </div>
+    );
+  }
+
+  const items = data?.items ?? [];
+  const totalPages = data?.total_pages ?? 0;
+  const total = data?.total ?? 0;
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-2xl font-bold mb-6">Items</h1>
-      <div className="mb-6">
-        <input
-          type="text"
-          placeholder="Search items..."
-          value={search}
-          onChange={(e) => {
-            setSearch(e.target.value);
-            setPage(1);
-          }}
-          className="w-full max-w-md rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
-        />
-      </div>
-      {error && <div className="bg-red-50 text-red-600 p-3 rounded-md mb-4">{error}</div>}
-      {isLoading ? (
-        <div className="flex justify-center py-12">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-        </div>
-      ) : data && data.items.length > 0 ? (
+    <div>
+      <h1 className="mb-6 text-2xl font-bold text-gray-900">Items</h1>
+
+      {items.length === 0 ? (
+        <p className="text-gray-500">No items found.</p>
+      ) : (
         <>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {data.items.map((item) => (
-              <Link
+          <p className="mb-4 text-sm text-gray-500">
+            Showing page {page} of {totalPages} ({total} total items)
+          </p>
+
+          <ul className="space-y-4">
+            {items.map((item) => (
+              <li
                 key={item.id}
-                to={`/items/${item.id}`}
-                className="block p-4 border rounded-lg hover:shadow-md transition-shadow"
+                className="rounded-lg border border-gray-200 bg-white p-4 shadow-sm"
               >
-                <h2 className="text-lg font-semibold">{item.title}</h2>
-                <p className="text-gray-600 mt-1 line-clamp-2">{item.description}</p>
+                <h2 className="text-lg font-semibold text-gray-900">
+                  {item.title}
+                </h2>
+                {item.description && (
+                  <p className="mt-1 text-sm text-gray-600">
+                    {item.description}
+                  </p>
+                )}
                 {item.tags.length > 0 && (
                   <div className="mt-2 flex flex-wrap gap-1">
                     {item.tags.map((tag) => (
                       <span
                         key={tag.id}
-                        className="bg-primary-100 text-primary-700 text-xs px-2 py-0.5 rounded"
+                        className="inline-block rounded-full bg-primary-100 px-2 py-0.5 text-xs font-medium text-primary-700"
                       >
                         {tag.name}
                       </span>
                     ))}
                   </div>
                 )}
-              </Link>
+              </li>
             ))}
-          </div>
-          {data.total_pages > 1 && (
-            <div className="mt-8 flex justify-center space-x-2">
-              <button
-                onClick={() => setPage((p) => Math.max(1, p - 1))}
+          </ul>
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="mt-6 flex items-center justify-center gap-4">
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handlePrevious}
                 disabled={page <= 1}
-                className="px-3 py-1 border rounded disabled:opacity-50"
+                aria-label="Previous page"
               >
-                Previous
-              </button>
-              <span className="px-3 py-1">
-                Page {data.page} of {data.total_pages}
+                ← Previous
+              </Button>
+              <span className="text-sm text-gray-700">
+                Page {page} of {totalPages}
               </span>
-              <button
-                onClick={() => setPage((p) => Math.min(data.total_pages, p + 1))}
-                disabled={page >= data.total_pages}
-                className="px-3 py-1 border rounded disabled:opacity-50"
+              <Button
+                variant="secondary"
+                size="sm"
+                onClick={handleNext}
+                disabled={page >= totalPages}
+                aria-label="Next page"
               >
-                Next
-              </button>
+                Next →
+              </Button>
             </div>
           )}
         </>
-      ) : (
-        <p className="text-gray-500 text-center py-12">No items found.</p>
       )}
     </div>
   );

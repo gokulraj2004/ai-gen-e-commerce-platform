@@ -1,36 +1,49 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import Layout from '../components/Layout';
-import ProtectedRoute from '../components/auth/ProtectedRoute';
-import HomePage from '../pages/HomePage';
-import LoginPage from '../pages/LoginPage';
-import RegisterPage from '../pages/RegisterPage';
-import ItemsPage from '../pages/ItemsPage';
-import ItemDetailPage from '../pages/ItemDetailPage';
-import ProfilePage from '../pages/ProfilePage';
-import NotFoundPage from '../pages/NotFoundPage';
+import { Routes, Route, Navigate } from 'react-router-dom';
+import { Layout } from '../components/layout/Layout';
+import { ProtectedRoute } from '../components/auth/ProtectedRoute';
+
+// Lazy-load pages
+const LoginPage = React.lazy(() => import('../pages/LoginPage'));
+const RegisterPage = React.lazy(() => import('../pages/RegisterPage'));
+const HomePage = React.lazy(() => import('../pages/HomePage'));
+const ProfilePage = React.lazy(() => import('../pages/ProfilePage'));
+const ItemsPage = React.lazy(() => import('../pages/ItemsPage'));
 
 export const AppRouter: React.FC = () => {
   return (
-    <BrowserRouter>
+    <React.Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center">
+          Loading...
+        </div>
+      }
+    >
       <Routes>
-        <Route path="/" element={<Layout />}>
-          <Route index element={<HomePage />} />
-          <Route path="login" element={<LoginPage />} />
-          <Route path="register" element={<RegisterPage />} />
-          <Route path="items" element={<ItemsPage />} />
-          <Route path="items/:id" element={<ItemDetailPage />} />
+        <Route element={<Layout />}>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
           <Route
-            path="profile"
+            path="/profile"
             element={
               <ProtectedRoute>
                 <ProfilePage />
               </ProtectedRoute>
             }
           />
-          <Route path="*" element={<NotFoundPage />} />
+          {/* EXAMPLE ROUTE — DELETE when removing example entities */}
+          <Route
+            path="/items"
+            element={
+              <ProtectedRoute>
+                <ItemsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Routes>
-    </BrowserRouter>
+    </React.Suspense>
   );
 };
