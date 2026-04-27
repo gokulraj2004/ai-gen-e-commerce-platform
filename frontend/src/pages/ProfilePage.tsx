@@ -4,30 +4,30 @@ import { useAuth } from '../hooks/useAuth';
 const ProfilePage: React.FC = () => {
   const { user } = useAuth();
 
-  if (!user) {
-    return null;
-  }
+  if (!user) return null;
 
   return (
-    <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <h1 className="text-2xl font-bold mb-6">Profile</h1>
-      <div className="bg-white shadow rounded-lg p-6">
-        <div className="space-y-4">
+    <div>
+      <h1 className="mb-6 text-2xl font-bold text-gray-900">Profile</h1>
+      <div className="card max-w-md">
+        <dl className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-500">Full Name</label>
-            <p className="mt-1 text-lg text-gray-900">{user.full_name}</p>
+            <dt className="text-sm font-medium text-gray-500">Name</dt>
+            <dd className="text-gray-900">
+              {user.first_name} {user.last_name}
+            </dd>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-500">Email</label>
-            <p className="mt-1 text-lg text-gray-900">{user.email}</p>
+            <dt className="text-sm font-medium text-gray-500">Email</dt>
+            <dd className="text-gray-900">{user.email}</dd>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-500">Member Since</label>
-            <p className="mt-1 text-lg text-gray-900">
+            <dt className="text-sm font-medium text-gray-500">Member since</dt>
+            <dd className="text-gray-900">
               {new Date(user.created_at).toLocaleDateString()}
-            </p>
+            </dd>
           </div>
-        </div>
+        </dl>
       </div>
     </div>
   );

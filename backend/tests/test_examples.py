@@ -55,6 +55,39 @@ async def test_list_items(client: AsyncClient, auth_headers: dict[str, str]) -> 
 
 
 @pytest.mark.asyncio
+async def test_list_items_with_per_page(client: AsyncClient, auth_headers: dict[str, str]) -> None:
+    """Test listing items with page and per_page query parameters."""
+    # Create a few items
+    for i in range(3):
+        await client.post(
+            "/api/v1/items",
+            headers=auth_headers,
+            json={"title": f"Paginated Item {i}"},
+        )
+
+    response = await client.get(
+        "/api/v1/items",
+        headers=auth_headers,
+        params={"page": 1, "per_page": 2},
+    )
+    assert response.status_code == 200
+    data = response.json()
+    assert data["page"] == 1
+    assert data["page_size"] == 2
+    assert len(data["items"]) <= 2
+
+
+@pytest.mark.asyncio
+async def test_list_items_default_pagination(client: AsyncClient, auth_headers: dict[str, str]) -> None:
+    """Test that default pagination is page=1, per_page=20."""
+    response = await client.get("/api/v1/items", headers=auth_headers)
+    assert response.status_code == 200
+    data = response.json()
+    assert data["page"] == 1
+    assert data["page_size"] == 20
+
+
+@pytest.mark.asyncio
 async def test_get_item(client: AsyncClient, auth_headers: dict[str, str]) -> None:
     """Test getting a single item by ID."""
     # Create an item
@@ -205,7 +238,7 @@ async def test_items_pagination(client: AsyncClient, auth_headers: dict[str, str
     response = await client.get(
         "/api/v1/items",
         headers=auth_headers,
-        params={"page": 1, "page_size": 5},
+        params={"page": 1, "per_page": 5},
     )
     assert response.status_code == 200
     data = response.json()

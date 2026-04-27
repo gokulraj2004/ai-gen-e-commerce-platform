@@ -38,7 +38,7 @@ async def list_items(
     db: DbSession,
     current_user: CurrentUser,
     page: int = Query(default=1, ge=1, description="Page number"),
-    page_size: int = Query(default=20, ge=1, le=100, description="Items per page"),
+    per_page: int = Query(default=20, ge=1, le=100, description="Items per page"),
     search: Optional[str] = Query(default=None, description="Search title/description"),
     tags: Optional[list[str]] = Query(default=None, description="Filter by tag names"),
     sort_by: str = Query(
@@ -51,7 +51,7 @@ async def list_items(
     service = ExampleService(db)
     result = await service.list_items(
         page=page,
-        page_size=page_size,
+        page_size=per_page,
         search=search,
         tags=tags,
         sort_by=sort_by,

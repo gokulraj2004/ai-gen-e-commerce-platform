@@ -23,7 +23,7 @@ export const itemsApi = {
     const queryParams: Record<string, string | number> = {};
 
     if (params.page) queryParams.page = params.page;
-    if (params.page_size) queryParams.page_size = params.page_size;
+    if (params.per_page) queryParams.per_page = params.per_page;
     if (params.search) queryParams.search = params.search;
     if (params.sort_by) queryParams.sort_by = params.sort_by;
     if (params.tags && params.tags.length > 0) {

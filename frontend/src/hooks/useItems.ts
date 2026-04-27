@@ -23,6 +23,7 @@ export const useItems = (params: ItemsQueryParams = {}) => {
   return useQuery<PaginatedResponse<Item>>({
     queryKey: [ITEMS_QUERY_KEY, params],
     queryFn: () => itemsApi.list(params),
+    placeholderData: (previousData) => previousData,
   });
 };
 
