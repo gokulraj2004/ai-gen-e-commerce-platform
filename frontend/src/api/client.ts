@@ -13,33 +13,23 @@ const apiClient = axios.create({
 const ACCESS_TOKEN_KEY = 'access_token';
 const REFRESH_TOKEN_KEY = 'refresh_token';
 
-/**
- * Token storage abstraction.
- * Uses sessionStorage instead of localStorage to reduce XSS token theft window.
- * Tokens are cleared when the browser tab/window is closed.
- *
- * For maximum security, consider migrating to httpOnly cookie-based auth
- * with a Backend-for-Frontend (BFF) pattern.
- */
-export function getAccessToken(): string | null {
-  return sessionStorage.getItem(ACCESS_TOKEN_KEY);
-}
+export const getAccessToken = (): string | null =>
+  localStorage.getItem(ACCESS_TOKEN_KEY);
 
-export function getRefreshToken(): string | null {
-  return sessionStorage.getItem(REFRESH_TOKEN_KEY);
-}
+export const getRefreshToken = (): string | null =>
+  localStorage.getItem(REFRESH_TOKEN_KEY);
 
-export function setTokens(accessToken: string, refreshToken: string): void {
-  sessionStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
-  sessionStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
-}
+export const setTokens = (accessToken: string, refreshToken: string): void => {
+  localStorage.setItem(ACCESS_TOKEN_KEY, accessToken);
+  localStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
+};
 
-export function clearTokens(): void {
-  sessionStorage.removeItem(ACCESS_TOKEN_KEY);
-  sessionStorage.removeItem(REFRESH_TOKEN_KEY);
-}
+export const clearTokens = (): void => {
+  localStorage.removeItem(ACCESS_TOKEN_KEY);
+  localStorage.removeItem(REFRESH_TOKEN_KEY);
+};
 
-// Attach access token to every request
+// Request interceptor — attach access token
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
     const token = getAccessToken();
@@ -48,17 +38,17 @@ apiClient.interceptors.request.use(
     }
     return config;
   },
-  (error) => Promise.reject(error),
+  (error: AxiosError) => Promise.reject(error),
 );
 
-// Track whether a token refresh is in progress to avoid duplicate refresh calls
+// Response interceptor — handle 401 and attempt token refresh
 let isRefreshing = false;
 let failedQueue: Array<{
   resolve: (token: string) => void;
   reject: (error: unknown) => void;
 }> = [];
 
-function processQueue(error: unknown, token: string | null = null): void {
+const processQueue = (error: unknown, token: string | null = null): void => {
   failedQueue.forEach((promise) => {
     if (error) {
       promise.reject(error);
@@ -67,40 +57,52 @@ function processQueue(error: unknown, token: string | null = null): void {
     }
   });
   failedQueue = [];
-}
+};
 
 apiClient.interceptors.response.use(
   (response) => response,
   async (error: AxiosError) => {
-    const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean };
+    const originalRequest = error.config as InternalAxiosRequestConfig & {
+      _retry?: boolean;
+    };
 
-    // If 401 and we haven't already retried, attempt token refresh
-    if (error.response?.status === 401 && !originalRequest._retry) {
-      const refreshToken = getRefreshToken();
+    if (!originalRequest) {
+      return Promise.reject(error);
+    }
 
-      // If no refresh token or the failing request was the refresh endpoint itself, bail out
-      if (!refreshToken || originalRequest.url?.includes('/auth/refresh')) {
-        clearTokens();
-        window.dispatchEvent(new CustomEvent('auth:logout'));
-        return Promise.reject(error);
-      }
-
+    // Don't retry refresh or login requests
+    if (
+      error.response?.status === 401 &&
+      !originalRequest._retry &&
+      !originalRequest.url?.includes('/auth/login') &&
+      !originalRequest.url?.includes('/auth/refresh')
+    ) {
       if (isRefreshing) {
         return new Promise<string>((resolve, reject) => {
           failedQueue.push({ resolve, reject });
-        }).then((token) => {
-          if (originalRequest.headers) {
-            originalRequest.headers.Authorization = `Bearer ${token}`;
-          }
-          return apiClient(originalRequest);
-        });
+        })
+          .then((token) => {
+            if (originalRequest.headers) {
+              originalRequest.headers.Authorization = `Bearer ${token}`;
+            }
+            return apiClient(originalRequest);
+          })
+          .catch((err) => Promise.reject(err));
       }
 
       originalRequest._retry = true;
       isRefreshing = true;
 
+      const refreshToken = getRefreshToken();
+
+      if (!refreshToken) {
+        clearTokens();
+        window.location.href = '/login';
+        return Promise.reject(error);
+      }
+
       try {
-        const response = await apiClient.post('/auth/refresh', {
+        const response = await axios.post(`${API_BASE_URL}/auth/refresh`, {
           refresh_token: refreshToken,
         });
 
@@ -111,11 +113,12 @@ apiClient.interceptors.response.use(
         if (originalRequest.headers) {
           originalRequest.headers.Authorization = `Bearer ${access_token}`;
         }
+
         return apiClient(originalRequest);
       } catch (refreshError) {
         processQueue(refreshError, null);
         clearTokens();
-        window.dispatchEvent(new CustomEvent('auth:logout'));
+        window.location.href = '/login';
         return Promise.reject(refreshError);
       } finally {
         isRefreshing = false;

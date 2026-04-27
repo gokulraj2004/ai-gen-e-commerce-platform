@@ -36,7 +36,7 @@ async def register(data: RegisterRequest, db: DbSession) -> UserResponse:
 @router.post(
     "/login",
     response_model=TokenResponse,
-    summary="Login and receive JWT tokens",
+    summary="Login and receive tokens",
 )
 async def login(data: LoginRequest, db: DbSession) -> TokenResponse:
     """Authenticate with email and password, receive access and refresh tokens."""
@@ -67,7 +67,7 @@ async def logout(
     db: DbSession,
     current_user: CurrentUser,
 ) -> MessageResponse:
-    """Revoke the provided refresh token by adding it to the blocklist."""
+    """Revoke the provided refresh token, effectively logging out."""
     service = AuthService(db)
     await service.logout(data.refresh_token, current_user.id)
     return MessageResponse(message="Successfully logged out")

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
-import { useAuth } from '../../hooks/useAuth';
 import { Input } from '../ui/Input';
 import { Button } from '../ui/Button';
+import { useAuth } from '../../hooks/useAuth';
 import { validateEmail, validateRequired } from '../../utils/validators';
 import { AxiosError } from 'axios';
 
@@ -37,6 +37,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!validate()) return;
 
     setIsSubmitting(true);
@@ -46,11 +47,10 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
       await login({ email, password });
       onSuccess();
     } catch (error) {
-      if (error instanceof AxiosError && error.response) {
-        const detail = error.response.data?.detail;
-        setErrors({
-          general: typeof detail === 'string' ? detail : 'Invalid email or password',
-        });
+      if (error instanceof AxiosError) {
+        const message =
+          error.response?.data?.detail || 'Invalid email or password';
+        setErrors({ general: message });
       } else {
         setErrors({ general: 'An unexpected error occurred. Please try again.' });
       }
@@ -62,8 +62,8 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
   return (
     <form onSubmit={handleSubmit} className="space-y-4" noValidate>
       {errors.general && (
-        <div className="rounded-md bg-red-50 border border-red-200 p-3" role="alert">
-          <p className="text-sm text-red-700">{errors.general}</p>
+        <div className="rounded-md bg-red-50 p-3 text-sm text-red-700" role="alert">
+          {errors.general}
         </div>
       )}
 
@@ -89,7 +89,12 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccess }) => {
         required
       />
 
-      <Button type="submit" isLoading={isSubmitting} className="w-full">
+      <Button
+        type="submit"
+        variant="primary"
+        className="w-full"
+        isLoading={isSubmitting}
+      >
         Sign In
       </Button>
     </form>

@@ -1,87 +1,91 @@
 /**
- * EXAMPLE HOOKS — Demonstrates React Query patterns with CRUD operations.
+ * EXAMPLE HOOK — Demonstrates React Query patterns for data fetching.
  * DELETE this file and create your own domain hooks.
  *
  * To remove:
  * 1. Delete this file
- * 2. Create your domain hooks (e.g., hooks/useProducts.ts)
+ * 2. Create your domain hooks (e.g., hooks/useProducts.ts, hooks/usePosts.ts)
  */
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  getItems,
-  getItem,
-  createItem,
-  updateItem,
-  deleteItem,
-  getTags,
-  createTag,
-} from '../api/items';
+import { itemsApi, tagsApi } from '../api/items';
 import type {
-  ItemsQueryParams,
+  Item,
   ItemCreateRequest,
   ItemUpdateRequest,
-  TagCreateRequest,
+  ItemsQueryParams,
+  PaginatedResponse,
 } from '../types';
 
-export function useItems(params: ItemsQueryParams = {}) {
+const ITEMS_QUERY_KEY = 'items';
+const TAGS_QUERY_KEY = 'tags';
+
+export const useItems = (params: ItemsQueryParams = {}) => {
+  return useQuery<PaginatedResponse<Item>>({
+    queryKey: [ITEMS_QUERY_KEY, params],
+    queryFn: () => itemsApi.list(params),
+  });
+};
+
+export const useItem = (id: string) => {
+  return useQuery<Item>({
+    queryKey: [ITEMS_QUERY_KEY, id],
+    queryFn: () => itemsApi.getById(id),
+    enabled: !!id,
+  });
+};
+
+export const useCreateItem = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: ItemCreateRequest) => itemsApi.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [ITEMS_QUERY_KEY] });
+    },
+  });
+};
+
+export const useUpdateItem = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: ItemUpdateRequest }) =>
+      itemsApi.update(id, data),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: [ITEMS_QUERY_KEY] });
+      queryClient.invalidateQueries({
+        queryKey: [ITEMS_QUERY_KEY, variables.id],
+      });
+    },
+  });
+};
+
+export const useDeleteItem = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) => itemsApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: [ITEMS_QUERY_KEY] });
+    },
+  });
+};
+
+export const useTags = () => {
   return useQuery({
-    queryKey: ['items', params],
-    queryFn: () => getItems(params),
+    queryKey: [TAGS_QUERY_KEY],
+    queryFn: () => tagsApi.list(),
+    select: (data) => data.tags,
   });
-}
+};
 
-export function useItem(itemId: string) {
-  return useQuery({
-    queryKey: ['items', itemId],
-    queryFn: () => getItem(itemId),
-    enabled: !!itemId,
-  });
-}
-
-export function useCreateItem() {
+export const useCreateTag = () => {
   const queryClient = useQueryClient();
+
   return useMutation({
-    mutationFn: (data: ItemCreateRequest) => createItem(data),
+    mutationFn: (data: { name: string }) => tagsApi.create(data),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['items'] });
+      queryClient.invalidateQueries({ queryKey: [TAGS_QUERY_KEY] });
     },
   });
-}
-
-export function useUpdateItem(itemId: string) {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (data: ItemUpdateRequest) => updateItem(itemId, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['items'] });
-      queryClient.invalidateQueries({ queryKey: ['items', itemId] });
-    },
-  });
-}
-
-export function useDeleteItem() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (itemId: string) => deleteItem(itemId),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['items'] });
-    },
-  });
-}
-
-export function useTags() {
-  return useQuery({
-    queryKey: ['tags'],
-    queryFn: getTags,
-  });
-}
-
-export function useCreateTag() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (data: TagCreateRequest) => createTag(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['tags'] });
-    },
-  });
-}
+};

@@ -10,46 +10,54 @@ export const Header: React.FC = () => {
 
   const handleLogout = async () => {
     await logout();
-    navigate('/');
+    navigate('/login');
   };
 
   return (
     <header className="sticky top-0 z-40 border-b border-gray-200 bg-white">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-8">
-          <Link to="/" className="text-xl font-bold text-primary-600">
-            App
-          </Link>
-          <nav className="hidden items-center gap-6 md:flex">
-            <Link to="/" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
-              Home
-            </Link>
-            {/* EXAMPLE LINK — DELETE when removing example entities */}
-            {isAuthenticated && (
-              <Link to="/items" className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors">
-                Items
-              </Link>
-            )}
-          </nav>
-        </div>
+        {/* Logo */}
+        <Link to="/" className="text-xl font-bold text-primary-600">
+          App
+        </Link>
 
-        <div className="hidden items-center gap-4 md:flex">
+        {/* Desktop Navigation */}
+        <nav className="hidden items-center gap-6 md:flex">
+          <Link
+            to="/"
+            className="text-sm font-medium text-gray-700 hover:text-primary-600"
+          >
+            Home
+          </Link>
+          {/* EXAMPLE LINK — DELETE when removing example entities */}
+          {isAuthenticated && (
+            <Link
+              to="/items"
+              className="text-sm font-medium text-gray-700 hover:text-primary-600"
+            >
+              Items
+            </Link>
+          )}
+        </nav>
+
+        {/* Auth Actions */}
+        <div className="hidden items-center gap-3 md:flex">
           {isAuthenticated ? (
             <>
               <Link
                 to="/profile"
-                className="text-sm font-medium text-gray-600 hover:text-gray-900 transition-colors"
+                className="text-sm font-medium text-gray-700 hover:text-primary-600"
               >
-                {user?.first_name} {user?.last_name}
+                {user?.first_name || 'Profile'}
               </Link>
-              <Button variant="secondary" size="sm" onClick={handleLogout}>
+              <Button variant="ghost" size="sm" onClick={handleLogout}>
                 Logout
               </Button>
             </>
           ) : (
             <>
               <Link to="/login">
-                <Button variant="secondary" size="sm">
+                <Button variant="ghost" size="sm">
                   Login
                 </Button>
               </Link>
@@ -64,7 +72,7 @@ export const Header: React.FC = () => {
 
         {/* Mobile menu button */}
         <button
-          className="rounded-md p-2 text-gray-600 hover:bg-gray-100 md:hidden"
+          className="rounded-md p-2 text-gray-700 hover:bg-gray-100 md:hidden"
           onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
           aria-label="Toggle menu"
           aria-expanded={isMobileMenuOpen}
@@ -81,11 +89,11 @@ export const Header: React.FC = () => {
 
       {/* Mobile menu */}
       {isMobileMenuOpen && (
-        <div className="border-t border-gray-200 bg-white px-4 py-4 md:hidden">
-          <nav className="flex flex-col gap-3">
+        <div className="border-t border-gray-200 bg-white px-4 py-3 md:hidden">
+          <nav className="flex flex-col gap-2">
             <Link
               to="/"
-              className="text-sm font-medium text-gray-600 hover:text-gray-900"
+              className="rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
               onClick={() => setIsMobileMenuOpen(false)}
             >
               Home
@@ -94,7 +102,7 @@ export const Header: React.FC = () => {
             {isAuthenticated && (
               <Link
                 to="/items"
-                className="text-sm font-medium text-gray-600 hover:text-gray-900"
+                className="rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 Items
@@ -104,7 +112,7 @@ export const Header: React.FC = () => {
               <>
                 <Link
                   to="/profile"
-                  className="text-sm font-medium text-gray-600 hover:text-gray-900"
+                  className="rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   Profile
@@ -114,7 +122,7 @@ export const Header: React.FC = () => {
                     setIsMobileMenuOpen(false);
                     handleLogout();
                   }}
-                  className="text-left text-sm font-medium text-red-600 hover:text-red-700"
+                  className="rounded-md px-3 py-2 text-left text-sm font-medium text-gray-700 hover:bg-gray-100"
                 >
                   Logout
                 </button>
@@ -123,14 +131,14 @@ export const Header: React.FC = () => {
               <>
                 <Link
                   to="/login"
-                  className="text-sm font-medium text-gray-600 hover:text-gray-900"
+                  className="rounded-md px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   Login
                 </Link>
                 <Link
                   to="/register"
-                  className="text-sm font-medium text-primary-600 hover:text-primary-700"
+                  className="rounded-md px-3 py-2 text-sm font-medium text-primary-600 hover:bg-gray-100"
                   onClick={() => setIsMobileMenuOpen(false)}
                 >
                   Register

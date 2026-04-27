@@ -1,146 +1,168 @@
 import React, { useState } from 'react';
-import { validateEmail, validateRequired, validatePassword, validatePasswordMatch } from '../../utils/validators';
+import { Input } from '../ui/Input';
+import { Button } from '../ui/Button';
+import { useAuth } from '../../hooks/useAuth';
+import {
+  validateEmail,
+  validatePassword,
+  validateRequired,
+} from '../../utils/validators';
+import { AxiosError } from 'axios';
 
 interface RegisterFormProps {
-  onSubmit: (data: { email: string; password: string; first_name: string; last_name: string }) => Promise<void>;
-  isLoading?: boolean;
-  error?: string | null;
+  onSuccess: () => void;
 }
 
-const RegisterForm: React.FC<RegisterFormProps> = ({ onSubmit, isLoading = false, error }) => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [errors, setErrors] = useState<Record<string, string | null>>({});
+interface FormErrors {
+  email?: string;
+  password?: string;
+  confirmPassword?: string;
+  first_name?: string;
+  last_name?: string;
+  general?: string;
+}
+
+export const RegisterForm: React.FC<RegisterFormProps> = ({ onSuccess }) => {
+  const { register } = useAuth();
+  const [formData, setFormData] = useState({
+    email: '',
+    password: '',
+    confirmPassword: '',
+    first_name: '',
+    last_name: '',
+  });
+  const [errors, setErrors] = useState<FormErrors>({});
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const updateField = (field: string, value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+  };
 
   const validate = (): boolean => {
-    const newErrors: Record<string, string | null> = {
-      email: validateEmail(email),
-      password: validatePassword(password),
-      confirmPassword: validatePasswordMatch(password, confirmPassword),
-      firstName: validateRequired(firstName, 'First name'),
-      lastName: validateRequired(lastName, 'Last name'),
-    };
+    const newErrors: FormErrors = {};
+
+    const firstNameError = validateRequired(formData.first_name, 'First name');
+    if (firstNameError) newErrors.first_name = firstNameError;
+
+    const lastNameError = validateRequired(formData.last_name, 'Last name');
+    if (lastNameError) newErrors.last_name = lastNameError;
+
+    const emailError = validateEmail(formData.email);
+    if (emailError) newErrors.email = emailError;
+
+    const passwordError = validatePassword(formData.password);
+    if (passwordError) newErrors.password = passwordError;
+
+    if (formData.password !== formData.confirmPassword) {
+      newErrors.confirmPassword = 'Passwords do not match';
+    }
 
     setErrors(newErrors);
-    return !Object.values(newErrors).some((e) => e !== null);
+    return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     if (!validate()) return;
 
-    await onSubmit({
-      email,
-      password,
-      first_name: firstName,
-      last_name: lastName,
-    });
+    setIsSubmitting(true);
+    setErrors({});
+
+    try {
+      await register({
+        email: formData.email,
+        password: formData.password,
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+      });
+      onSuccess();
+    } catch (error) {
+      if (error instanceof AxiosError) {
+        const message =
+          error.response?.data?.detail || 'Registration failed. Please try again.';
+        setErrors({ general: message });
+      } else {
+        setErrors({ general: 'An unexpected error occurred. Please try again.' });
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 w-full max-w-md" noValidate>
-      <h2 className="text-2xl font-bold text-center">Create Account</h2>
-
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded" role="alert">
-          {error}
+    <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+      {errors.general && (
+        <div className="rounded-md bg-red-50 p-3 text-sm text-red-700" role="alert">
+          {errors.general}
         </div>
       )}
 
-      <div className="grid grid-cols-2 gap-4">
-        <div>
-          <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
-            First Name
-          </label>
-          <input
-            id="firstName"
-            type="text"
-            value={firstName}
-            onChange={(e) => setFirstName(e.target.value)}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-            disabled={isLoading}
-            required
-          />
-          {errors.firstName && <p className="mt-1 text-sm text-red-600">{errors.firstName}</p>}
-        </div>
-
-        <div>
-          <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
-            Last Name
-          </label>
-          <input
-            id="lastName"
-            type="text"
-            value={lastName}
-            onChange={(e) => setLastName(e.target.value)}
-            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-            disabled={isLoading}
-            required
-          />
-          {errors.lastName && <p className="mt-1 text-sm text-red-600">{errors.lastName}</p>}
-        </div>
-      </div>
-
-      <div>
-        <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-          Email
-        </label>
-        <input
-          id="email"
-          type="email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-          disabled={isLoading}
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <Input
+          label="First Name"
+          type="text"
+          value={formData.first_name}
+          onChange={(e) => updateField('first_name', e.target.value)}
+          error={errors.first_name}
+          placeholder="John"
+          autoComplete="given-name"
           required
         />
-        {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
-      </div>
 
-      <div>
-        <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-          Password
-        </label>
-        <input
-          id="password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-          disabled={isLoading}
+        <Input
+          label="Last Name"
+          type="text"
+          value={formData.last_name}
+          onChange={(e) => updateField('last_name', e.target.value)}
+          error={errors.last_name}
+          placeholder="Doe"
+          autoComplete="family-name"
           required
         />
-        {errors.password && <p className="mt-1 text-sm text-red-600">{errors.password}</p>}
       </div>
 
-      <div>
-        <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
-          Confirm Password
-        </label>
-        <input
-          id="confirmPassword"
-          type="password"
-          value={confirmPassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500"
-          disabled={isLoading}
-          required
-        />
-        {errors.confirmPassword && <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>}
-      </div>
+      <Input
+        label="Email"
+        type="email"
+        value={formData.email}
+        onChange={(e) => updateField('email', e.target.value)}
+        error={errors.email}
+        placeholder="you@example.com"
+        autoComplete="email"
+        required
+      />
 
-      <button
+      <Input
+        label="Password"
+        type="password"
+        value={formData.password}
+        onChange={(e) => updateField('password', e.target.value)}
+        error={errors.password}
+        placeholder="At least 8 characters"
+        autoComplete="new-password"
+        required
+      />
+
+      <Input
+        label="Confirm Password"
+        type="password"
+        value={formData.confirmPassword}
+        onChange={(e) => updateField('confirmPassword', e.target.value)}
+        error={errors.confirmPassword}
+        placeholder="Repeat your password"
+        autoComplete="new-password"
+        required
+      />
+
+      <Button
         type="submit"
-        disabled={isLoading}
-        className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 disabled:opacity-50 disabled:cursor-not-allowed"
+        variant="primary"
+        className="w-full"
+        isLoading={isSubmitting}
       >
-        {isLoading ? 'Creating account...' : 'Create Account'}
-      </button>
+        Create Account
+      </Button>
     </form>
   );
 };
-
-export default RegisterForm;

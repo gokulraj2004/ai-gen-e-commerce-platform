@@ -5,15 +5,18 @@ interface SpinnerProps {
   className?: string;
 }
 
-const sizeClasses = {
+const sizeClasses: Record<string, string> = {
   sm: 'h-4 w-4',
   md: 'h-8 w-8',
   lg: 'h-12 w-12',
 };
 
-export const Spinner: React.FC<SpinnerProps> = ({ size = 'md', className = '' }) => {
+export const Spinner: React.FC<SpinnerProps> = ({
+  size = 'md',
+  className = '',
+}) => {
   return (
-    <div className={`flex items-center justify-center ${className}`} role="status" aria-label="Loading">
+    <div className={`flex items-center justify-center ${className}`} role="status">
       <svg
         className={`animate-spin text-primary-600 ${sizeClasses[size]}`}
         xmlns="http://www.w3.org/2000/svg"

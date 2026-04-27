@@ -1,6 +1,6 @@
 # ═══════════════════════════════════════════════════════════════
 # Backend Dockerfile — FastAPI + Python 3.11
-# Multi-stage build with non-root user for security
+# Multi-stage build with non-root user for security.
 # ═══════════════════════════════════════════════════════════════
 
 FROM python:3.11-slim AS base
@@ -11,7 +11,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /app
 
-# Create non-root user and group
+# Create non-root user
 RUN addgroup --system appgroup && \
     adduser --system --ingroup appgroup appuser
 

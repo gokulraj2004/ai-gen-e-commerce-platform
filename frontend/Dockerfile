@@ -9,25 +9,25 @@ FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files for dependency caching
-COPY package.json package-lock.json* ./
+# Accept build-time environment variables
+ARG VITE_API_BASE_URL=http://localhost:8000/api/v1
+ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
 
-# Install dependencies
+# Install dependencies (cached layer)
+COPY package.json package-lock.json* ./
 RUN npm ci --ignore-scripts=false
 
-# Copy source code
+# Copy source code and build
 COPY . .
-
-# Build the application
 RUN npm run build
 
 # ── Stage 2: Serve ───────────────────────────────────────────
-FROM nginx:1.25-alpine AS production
+FROM nginx:1.25-alpine
 
-# Remove default nginx configuration
+# Remove default nginx config
 RUN rm /etc/nginx/conf.d/default.conf
 
-# Copy custom nginx configuration
+# Copy custom nginx config
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Copy built assets from builder stage
@@ -37,11 +37,9 @@ COPY --from=builder /app/dist /usr/share/nginx/html
 RUN chown -R nginx:nginx /usr/share/nginx/html && \
     chown -R nginx:nginx /var/cache/nginx && \
     chown -R nginx:nginx /var/log/nginx && \
-    chown -R nginx:nginx /etc/nginx/conf.d && \
     touch /var/run/nginx.pid && \
     chown -R nginx:nginx /var/run/nginx.pid
 
 EXPOSE 80
 
-# Start nginx
 CMD ["nginx", "-g", "daemon off;"]

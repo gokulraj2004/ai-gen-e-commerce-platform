@@ -20,11 +20,6 @@ export interface RegisterRequest {
   last_name: string;
 }
 
-export interface UpdateProfileRequest {
-  first_name?: string;
-  last_name?: string;
-}
-
 export interface TokenResponse {
   access_token: string;
   refresh_token: string;
@@ -38,4 +33,10 @@ export interface RefreshRequest {
 
 export interface LogoutRequest {
   refresh_token: string;
+}
+
+export interface UpdateProfileRequest {
+  first_name?: string;
+  last_name?: string;
+  email?: string;
 }

@@ -1,6 +1,5 @@
 """
-Declarative base with common columns shared by all models.
-Provides id (UUID), created_at, and updated_at automatically.
+Declarative base with common columns shared across all models.
 """
 import uuid
 from datetime import datetime, timezone
@@ -11,10 +10,8 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
 class Base(DeclarativeBase):
-    """
-    Abstract declarative base.
-    All models inheriting from Base get id, created_at, and updated_at columns.
-    """
+    """Base class for all SQLAlchemy models."""
+
     pass
 
 
@@ -25,13 +22,11 @@ class TimestampMixin:
         DateTime(timezone=True),
         nullable=False,
         server_default=func.now(),
-        default=lambda: datetime.now(timezone.utc),
     )
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
         server_default=func.now(),
-        default=lambda: datetime.now(timezone.utc),
         onupdate=lambda: datetime.now(timezone.utc),
     )
 

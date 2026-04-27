@@ -14,8 +14,8 @@ export interface ErrorResponse {
   detail: string;
 }
 
-export interface ApiError {
-  status: number;
-  message: string;
-  detail?: string;
+export interface HealthResponse {
+  status: string;
+  database: string;
+  version: string;
 }

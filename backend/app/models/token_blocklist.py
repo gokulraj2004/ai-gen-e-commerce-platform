@@ -1,36 +1,34 @@
 """
-Token blocklist model — stores revoked JWT refresh tokens.
-KEEP this model; it is part of the authentication system.
+Token blocklist model — KEEP this file. Part of the authentication system.
+Used to revoke/invalidate refresh tokens on logout.
 """
-from __future__ import annotations
-
 import uuid
 from datetime import datetime
-from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, String
+from sqlalchemy import DateTime, ForeignKey, String, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, UUIDPrimaryKeyMixin
 
-if TYPE_CHECKING:
-    from app.models.user import User
 
-
-class TokenBlocklist(Base, UUIDPrimaryKeyMixin):
+class TokenBlocklist(UUIDPrimaryKeyMixin, Base):
     """
-    Stores revoked/blocklisted JWT tokens to prevent reuse after logout.
-    This is a core auth model — keep it.
+    Stores revoked/blocklisted JWT tokens.
+    Part of the core auth system — KEEP this model.
     """
 
     __tablename__ = "token_blocklist"
 
     jti: Mapped[str] = mapped_column(
-        String(36), unique=True, nullable=False, index=True
+        String(36),
+        unique=True,
+        nullable=False,
+        index=True,
     )
     token_type: Mapped[str] = mapped_column(
-        String(10), nullable=False
+        String(10),
+        nullable=False,
     )
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -38,16 +36,21 @@ class TokenBlocklist(Base, UUIDPrimaryKeyMixin):
         nullable=False,
     )
     expires_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), nullable=False
+        DateTime(timezone=True),
+        nullable=False,
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
-        server_default="now()",
+        server_default=func.now(),
     )
 
-    # ── Relationships ──
-    user: Mapped[User] = relationship("User", back_populates="blocklisted_tokens")
+    # Relationships
+    user: Mapped["User"] = relationship(  # noqa: F821
+        "User",
+        back_populates="blocklisted_tokens",
+        lazy="selectin",
+    )
 
     def __repr__(self) -> str:
-        return f"<TokenBlocklist(jti={self.jti!r}, token_type={self.token_type!r})>"
+        return f"<TokenBlocklist(id={self.id}, jti={self.jti}, type={self.token_type})>"

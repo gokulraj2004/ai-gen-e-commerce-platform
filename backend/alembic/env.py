@@ -10,17 +10,15 @@ from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
 from app.config import settings
-
-# Import Base and all models so metadata is populated
-from app.models import Base  # noqa: F401
+from app.models import Base
 
 # Alembic Config object
 config = context.config
 
-# Set the database URL dynamically from application settings
+# Set the SQLAlchemy URL from application settings
 config.set_main_option("sqlalchemy.url", settings.sync_database_url)
 
-# Set up Python logging from alembic.ini
+# Interpret the config file for Python logging
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)
 
@@ -29,9 +27,12 @@ target_metadata = Base.metadata
 
 
 def run_migrations_offline() -> None:
-    """
-    Run migrations in 'offline' mode.
-    Generates SQL scripts without connecting to the database.
+    """Run migrations in 'offline' mode.
+
+    This configures the context with just a URL
+    and not an Engine, though an Engine is acceptable
+    here as well. By skipping the Engine creation
+    we don't even need a DBAPI to be available.
     """
     url = config.get_main_option("sqlalchemy.url")
     context.configure(
@@ -46,7 +47,7 @@ def run_migrations_offline() -> None:
 
 
 def do_run_migrations(connection: Connection) -> None:
-    """Run migrations using the provided connection."""
+    """Run migrations with a given connection."""
     context.configure(connection=connection, target_metadata=target_metadata)
 
     with context.begin_transaction():
@@ -54,9 +55,7 @@ def do_run_migrations(connection: Connection) -> None:
 
 
 async def run_async_migrations() -> None:
-    """
-    Run migrations in 'online' mode using an async engine.
-    """
+    """Run migrations in 'online' mode using async engine."""
     configuration = config.get_section(config.config_ini_section, {})
     configuration["sqlalchemy.url"] = settings.async_database_url
 
@@ -73,10 +72,7 @@ async def run_async_migrations() -> None:
 
 
 def run_migrations_online() -> None:
-    """
-    Run migrations in 'online' mode.
-    Uses asyncio to run the async migration engine.
-    """
+    """Run migrations in 'online' mode."""
     asyncio.run(run_async_migrations())
 
 

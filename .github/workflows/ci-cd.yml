@@ -35,10 +35,15 @@ jobs:
 
     env:
       DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/test_db
-      JWT_SECRET_KEY: test-jwt-secret-key-for-ci
+      DATABASE_URL_SYNC: postgresql://postgres:postgres@localhost:5432/test_db
       SECRET_KEY: test-secret-key-for-ci
+      JWT_SECRET_KEY: test-jwt-secret-key-for-ci
+      JWT_ALGORITHM: HS256
+      JWT_ACCESS_TOKEN_EXPIRE_MINUTES: 30
+      JWT_REFRESH_TOKEN_EXPIRE_DAYS: 7
       APP_ENV: testing
-      DEBUG: false
+      DEBUG: true
+      CORS_ORIGINS: http://localhost:3000
 
     steps:
       - name: Checkout code
@@ -89,7 +94,7 @@ jobs:
       - name: Lint with ESLint
         run: npx eslint src/ --ext .ts,.tsx
 
-      - name: TypeScript type check
+      - name: Type check with TypeScript
         run: npx tsc --noEmit
 
       - name: Run tests with Vitest
@@ -137,5 +142,7 @@ jobs:
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/frontend:latest
             ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}/frontend:${{ github.sha }}
+          build-args: |
+            VITE_API_BASE_URL=${{ vars.VITE_API_BASE_URL || 'http://localhost:8000/api/v1' }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

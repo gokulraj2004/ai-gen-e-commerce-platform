@@ -1,24 +1,15 @@
 """
-Pydantic schemas (request/response models) package.
-Import and re-export all schemas for convenient access.
+Pydantic schemas package.
+Re-exports all schema classes for convenient imports.
 """
 from app.schemas.auth import (
     LoginRequest,
     RegisterRequest,
     TokenResponse,
-    RefreshRequest,
-    LogoutRequest,
+    RefreshTokenRequest,
     UserResponse,
     UserUpdateRequest,
 )
-from app.schemas.common import (
-    ErrorResponse,
-    MessageResponse,
-    PaginatedResponse,
-    HealthResponse,
-)
-
-# ── EXAMPLE SCHEMAS — DELETE when removing example models ──
 from app.schemas.examples import (
     ItemCreate,
     ItemUpdate,
@@ -28,22 +19,20 @@ from app.schemas.examples import (
     ItemListResponse,
     TagListResponse,
 )
+from app.schemas.common import (
+    PaginatedResponse,
+    MessageResponse,
+    ErrorResponse,
+    HealthResponse,
+)
 
 __all__ = [
-    # Auth
     "LoginRequest",
     "RegisterRequest",
     "TokenResponse",
-    "RefreshRequest",
-    "LogoutRequest",
+    "RefreshTokenRequest",
     "UserResponse",
     "UserUpdateRequest",
-    # Common
-    "ErrorResponse",
-    "MessageResponse",
-    "PaginatedResponse",
-    "HealthResponse",
-    # EXAMPLE — DELETE these exports
     "ItemCreate",
     "ItemUpdate",
     "ItemResponse",
@@ -51,4 +40,8 @@ __all__ = [
     "TagResponse",
     "ItemListResponse",
     "TagListResponse",
+    "PaginatedResponse",
+    "MessageResponse",
+    "ErrorResponse",
+    "HealthResponse",
 ]

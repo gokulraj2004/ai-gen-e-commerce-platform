@@ -2,17 +2,17 @@ export type {
   User,
   LoginRequest,
   RegisterRequest,
-  UpdateProfileRequest,
   TokenResponse,
   RefreshRequest,
   LogoutRequest,
+  UpdateProfileRequest,
 } from './auth';
 
 export type {
   PaginatedResponse,
   MessageResponse,
   ErrorResponse,
-  ApiError,
+  HealthResponse,
 } from './api';
 
 /**

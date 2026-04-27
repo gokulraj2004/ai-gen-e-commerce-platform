@@ -1,6 +1,6 @@
 # E-Commerce Platform
 
-A full-stack web application built with React (TypeScript) + FastAPI (Python) + PostgreSQL 15. This project provides a production-ready scaffold with authentication, example CRUD entities, and complete DevOps configuration.
+A full-stack web application built with React (TypeScript) + FastAPI (Python) + PostgreSQL 15. This project provides a production-ready scaffold with authentication, example CRUD entities, and complete DevOps infrastructure.
 
 ---
 
@@ -19,46 +19,42 @@ A full-stack web application built with React (TypeScript) + FastAPI (Python) + 
 
 ## Prerequisites
 
-- **Docker** >= 24.0 and **Docker Compose** >= 2.20
-- **Node.js** >= 20 (for local frontend development)
+- **Docker** >= 24.0 and **Docker Compose** >= 2.20 (for containerized setup)
+- **Node.js** >= 20.x and **npm** >= 10.x (for local frontend development)
 - **Python** >= 3.11 (for local backend development)
-- **PostgreSQL** 15 (if running without Docker)
+- **PostgreSQL** >= 15 (for local development without Docker)
 
 ---
 
-## Quick Start
-
-### 1. Clone the repository
+## Quick Start (Docker)
 
 ```bash
+# 1. Clone the repository
 git clone <repository-url>
 cd e-commerce-platform
-```
 
-### 2. Configure environment variables
-
-```bash
+# 2. Copy environment variables
 cp .env.example .env
-# Edit .env and set secure values for SECRET_KEY, JWT_SECRET_KEY, DB_PASSWORD
-```
 
-### 3. Start all services with Docker
+# 3. Edit .env with your secrets (at minimum change SECRET_KEY and JWT_SECRET_KEY)
+# nano .env
 
-```bash
+# 4. Build and start all services
 docker-compose up --build
-```
 
-This starts:
-- **Frontend** at [http://localhost:3000](http://localhost:3000)
-- **Backend API** at [http://localhost:8000](http://localhost:8000)
-- **API Docs (Swagger)** at [http://localhost:8000/docs](http://localhost:8000/docs)
-- **PostgreSQL** on port 5432
-
-### 4. Run database migrations
-
-```bash
+# 5. Run database migrations
 docker-compose exec backend alembic upgrade head
 ```
+
+**Services will be available at:**
+
+| Service   | URL                          |
+|-----------|------------------------------|
+| Frontend  | http://localhost:3000         |
+| Backend   | http://localhost:8000         |
+| API Docs  | http://localhost:8000/docs    |
+| ReDoc     | http://localhost:8000/redoc   |
+| Database  | localhost:5432               |
 
 ---
 
@@ -66,13 +62,14 @@ docker-compose exec backend alembic upgrade head
 
 All configuration is managed through environment variables. See [`.env.example`](.env.example) for a complete list with descriptions.
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `SECRET_KEY` | Application secret key | `change-me-to-a-random-secret-key` |
-| `JWT_SECRET_KEY` | JWT signing secret | `change-me-to-a-random-jwt-secret` |
-| `DATABASE_URL` | PostgreSQL connection string | `postgresql://postgres:postgres@db:5432/e_commerce_platform` |
-| `CORS_ORIGINS` | Allowed CORS origins (comma-separated) | `http://localhost:3000,http://localhost:5173` |
-| `VITE_API_BASE_URL` | Frontend API base URL | `http://localhost:8000/api/v1` |
+**Critical variables to change in production:**
+
+- `SECRET_KEY` — Application secret key
+- `JWT_SECRET_KEY` — JWT signing key
+- `DB_PASSWORD` — Database password
+- `CORS_ORIGINS` — Allowed frontend origins
+- `APP_ENV` — Set to `production`
+- `DEBUG` — Set to `false`
 
 ---
 
@@ -82,25 +79,25 @@ Once the backend is running, interactive API documentation is available at:
 
 - **Swagger UI:** [http://localhost:8000/docs](http://localhost:8000/docs)
 - **ReDoc:** [http://localhost:8000/redoc](http://localhost:8000/redoc)
+- **Health Check:** [http://localhost:8000/api/health](http://localhost:8000/api/health)
 
 ### Key Endpoints
 
-| Method | Path | Description | Auth |
-|--------|------|-------------|------|
-| `POST` | `/api/v1/auth/register` | Register a new user | No |
-| `POST` | `/api/v1/auth/login` | Login, receive tokens | No |
-| `POST` | `/api/v1/auth/refresh` | Refresh access token | Refresh Token |
-| `POST` | `/api/v1/auth/logout` | Revoke refresh token | Access Token |
-| `GET`  | `/api/v1/auth/me` | Get current user | Access Token |
-| `PUT`  | `/api/v1/auth/me` | Update current user | Access Token |
-| `GET`  | `/api/v1/items` | List items (paginated) | Access Token |
-| `POST` | `/api/v1/items` | Create item | Access Token |
-| `GET`  | `/api/v1/items/{id}` | Get item detail | Access Token |
-| `PUT`  | `/api/v1/items/{id}` | Update item (owner) | Access Token |
-| `DELETE` | `/api/v1/items/{id}` | Delete item (owner) | Access Token |
-| `GET`  | `/api/v1/tags` | List all tags | No |
-| `POST` | `/api/v1/tags` | Create tag | Access Token |
-| `GET`  | `/api/health` | Health check | No |
+| Method | Path                    | Description                  | Auth     |
+|--------|------------------------|------------------------------|----------|
+| POST   | `/api/v1/auth/register` | Register a new user          | No       |
+| POST   | `/api/v1/auth/login`    | Login, receive JWT tokens    | No       |
+| POST   | `/api/v1/auth/refresh`  | Refresh access token         | Refresh  |
+| POST   | `/api/v1/auth/logout`   | Blocklist refresh token      | Access   |
+| GET    | `/api/v1/auth/me`       | Get current user profile     | Access   |
+| PUT    | `/api/v1/auth/me`       | Update current user profile  | Access   |
+| GET    | `/api/v1/items`         | List items (paginated)       | Access   |
+| POST   | `/api/v1/items`         | Create item                  | Access   |
+| GET    | `/api/v1/items/{id}`    | Get single item              | Access   |
+| PUT    | `/api/v1/items/{id}`    | Update item (owner only)     | Access   |
+| DELETE | `/api/v1/items/{id}`    | Delete item (owner only)     | Access   |
+| GET    | `/api/v1/tags`          | List all tags                | No       |
+| POST   | `/api/v1/tags`          | Create tag                   | Access   |
 
 ---
 
@@ -108,31 +105,33 @@ Once the backend is running, interactive API documentation is available at:
 
 ```
 e-commerce-platform/
-├── frontend/          # React SPA (TypeScript, Vite, TailwindCSS)
+├── .env.example              # Environment variable template
+├── docker-compose.yml        # Multi-service orchestration
+├── .github/workflows/        # CI/CD pipeline
+│
+├── frontend/                 # React + TypeScript + Vite
 │   ├── src/
-│   │   ├── api/       # Axios client and API call functions
-│   │   ├── components/# Reusable UI and feature components
-│   │   ├── context/   # React context providers (Auth)
-│   │   ├── hooks/     # Custom React hooks
-│   │   ├── pages/     # Page-level components
-│   │   ├── router/    # React Router configuration
-│   │   ├── types/     # TypeScript interfaces
-│   │   └── utils/     # Helper functions
+│   │   ├── api/              # Axios API client and calls
+│   │   ├── components/       # Reusable UI and feature components
+│   │   ├── context/          # React context providers (Auth)
+│   │   ├── hooks/            # Custom React hooks
+│   │   ├── pages/            # Route page components
+│   │   ├── router/           # React Router configuration
+│   │   ├── types/            # TypeScript interfaces
+│   │   └── utils/            # Helper functions
 │   └── Dockerfile
-├── backend/           # FastAPI application (Python, async SQLAlchemy)
+│
+├── backend/                  # FastAPI + SQLAlchemy
 │   ├── app/
-│   │   ├── api/       # Route handlers (v1 endpoints)
-│   │   ├── core/      # Security, exceptions, pagination
-│   │   ├── middleware/ # CORS configuration
-│   │   ├── models/    # SQLAlchemy ORM models
-│   │   ├── schemas/   # Pydantic request/response schemas
-│   │   └── services/  # Business logic layer
-│   ├── alembic/       # Database migrations
-│   ├── tests/         # Pytest test suite
+│   │   ├── api/              # Route handlers (v1)
+│   │   ├── core/             # Security, exceptions, pagination
+│   │   ├── middleware/        # CORS configuration
+│   │   ├── models/           # SQLAlchemy ORM models
+│   │   ├── schemas/          # Pydantic request/response schemas
+│   │   └── services/         # Business logic layer
+│   ├── alembic/              # Database migrations
+│   ├── tests/                # Pytest test suite
 │   └── Dockerfile
-├── docker-compose.yml # Multi-service orchestration
-├── .env.example       # Environment variable template
-└── .github/workflows/ # CI/CD pipeline
 ```
 
 ---
@@ -152,6 +151,7 @@ source .venv/bin/activate  # Linux/macOS
 # Install dependencies
 pip install -r requirements.txt -r requirements-dev.txt
 
+# Ensure PostgreSQL is running and .env is configured
 # Run migrations
 alembic upgrade head
 
@@ -167,11 +167,11 @@ cd frontend
 # Install dependencies
 npm ci
 
-# Start development server
+# Start development server (with hot reload)
 npm run dev
 ```
 
-The Vite dev server runs at [http://localhost:5173](http://localhost:5173) and proxies API requests to the backend.
+The Vite dev server runs on `http://localhost:5173` and proxies API requests to `http://localhost:8000`.
 
 ---
 
@@ -187,8 +187,13 @@ source .venv/bin/activate
 pytest tests/ -v
 
 # Run with coverage
-coverage run -m pytest tests/ -v
-coverage report -m
+pytest tests/ -v --cov=app --cov-report=html
+
+# Linting
+ruff check .
+
+# Type checking
+mypy app/ --ignore-missing-imports
 ```
 
 ### Frontend Tests
@@ -201,20 +206,30 @@ npx vitest run
 
 # Run in watch mode
 npx vitest
+
+# Linting
+npx eslint src/ --ext .ts,.tsx
+
+# Type checking
+npx tsc --noEmit
 ```
 
-### Linting
+---
+
+## Database Migrations
 
 ```bash
-# Backend
-cd backend
-ruff check .
-mypy app/ --ignore-missing-imports
+# Create a new migration
+docker-compose exec backend alembic revision --autogenerate -m "description"
 
-# Frontend
-cd frontend
-npx eslint src/ --ext .ts,.tsx
-npx tsc --noEmit
+# Apply all pending migrations
+docker-compose exec backend alembic upgrade head
+
+# Rollback one migration
+docker-compose exec backend alembic downgrade -1
+
+# View migration history
+docker-compose exec backend alembic history
 ```
 
 ---
@@ -223,35 +238,43 @@ npx tsc --noEmit
 
 ### CI/CD Pipeline
 
-The GitHub Actions workflow (`.github/workflows/ci-cd.yml`) runs on every push to `main`/`develop` and on pull requests to `main`:
+The GitHub Actions workflow (`.github/workflows/ci-cd.yml`) runs on:
+
+- **Push** to `main` or `develop` branches
+- **Pull requests** to `main`
+
+**Pipeline stages:**
 
 1. **Lint & Test Backend** — Ruff, Mypy, Pytest
 2. **Lint & Test Frontend** — ESLint, TypeScript check, Vitest
 3. **Build & Push** — Docker images to GitHub Container Registry (on `main` only)
 
-### Production Deployment
+### Production Checklist
 
-1. Set all environment variables with production values (strong secrets, `DEBUG=false`)
-2. Use a managed PostgreSQL instance
-3. Configure HTTPS via a reverse proxy (e.g., Traefik, Caddy, or cloud load balancer)
-4. Set `CORS_ORIGINS` to your production domain
+- [ ] Change all secrets in `.env` (`SECRET_KEY`, `JWT_SECRET_KEY`, `DB_PASSWORD`)
+- [ ] Set `APP_ENV=production` and `DEBUG=false`
+- [ ] Configure `CORS_ORIGINS` to your production domain
+- [ ] Set up HTTPS (TLS termination via reverse proxy or load balancer)
+- [ ] Configure proper database backups
+- [ ] Set up monitoring and logging
+- [ ] Review and tighten CORS, rate limiting, and security headers
 
 ---
 
 ## Customization
 
-The project includes **example entities** (`Item`, `Tag`) to demonstrate patterns. To build your own application:
+This scaffold includes **example entities** (Item, Tag) to demonstrate patterns. To build your own application:
 
-### Backend
-1. Delete `app/models/examples.py`, `app/schemas/examples.py`, `app/services/example_service.py`, `app/api/v1/examples.py`
-2. Remove example imports from `app/models/__init__.py` and `app/api/router.py`
-3. Create your own models, schemas, services, and routes following the same patterns
+1. **Delete example files** — Look for files and directories marked with "EXAMPLE" or "DELETE & replace"
+2. **Create your domain models** in `backend/app/models/`
+3. **Create your schemas** in `backend/app/schemas/`
+4. **Create your services** in `backend/app/services/`
+5. **Create your API routes** in `backend/app/api/v1/`
+6. **Create your frontend components** in `frontend/src/components/`
+7. **Update the router** in `frontend/src/router/index.tsx`
+8. **Generate a migration** — `alembic revision --autogenerate -m "add my models"`
 
-### Frontend
-1. Delete `src/components/examples/`, `src/types/examples.ts`, `src/api/items.ts`, `src/hooks/useItems.ts`
-2. Delete `src/pages/ItemsPage.tsx` and `src/pages/ItemDetailPage.tsx`
-3. Update `src/router/index.tsx` to remove example routes
-4. Create your own components, pages, and API calls following the same patterns
+The authentication system (User model, JWT, login/register) is **production-ready and meant to be kept**.
 
 ---
 

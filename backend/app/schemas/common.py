@@ -1,38 +1,39 @@
 """
 Common/shared Pydantic schemas used across the application.
 """
-from typing import Generic, TypeVar
+from typing import Any, Generic, TypeVar
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 T = TypeVar("T")
 
 
 class MessageResponse(BaseModel):
     """Generic message response."""
+
     message: str
 
 
 class ErrorResponse(BaseModel):
-    """Standard error response."""
+    """Standard error response format."""
+
     detail: str
-    status_code: int = 400
+    status_code: int
 
 
-class PaginatedResponse(BaseModel, Generic[T]):
-    """
-    Generic paginated response wrapper.
-    Usage: PaginatedResponse[ItemResponse]
-    """
-    items: list[T] = Field(default_factory=list)
-    total: int = 0
-    page: int = 1
-    page_size: int = 20
-    total_pages: int = 0
+class PaginatedResponse(BaseModel):
+    """Generic paginated response schema."""
+
+    items: list[Any]
+    total: int
+    page: int
+    page_size: int
+    total_pages: int
 
 
 class HealthResponse(BaseModel):
     """Health check response."""
+
     status: str
     database: str
     version: str

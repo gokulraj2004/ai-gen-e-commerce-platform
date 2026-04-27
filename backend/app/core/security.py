@@ -1,10 +1,10 @@
 """
-JWT token creation/validation and password hashing utilities.
-This is a CORE module — KEEP for your application.
+JWT token creation/verification and password hashing utilities.
+KEEP this file — it is part of the core authentication system.
 """
 import uuid
 from datetime import datetime, timedelta, timezone
-from typing import Optional
+from typing import Any, Optional
 
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -26,55 +26,55 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
 
 def create_access_token(
     subject: str,
-    expires_delta: Optional[timedelta] = None,
-) -> tuple[str, str]:
+    extra_claims: Optional[dict[str, Any]] = None,
+) -> tuple[str, int]:
     """
     Create a JWT access token.
-    Returns a tuple of (token_string, jti).
+    Returns (token_string, expires_in_seconds).
     """
-    jti = str(uuid.uuid4())
-    now = datetime.now(timezone.utc)
-    if expires_delta is None:
-        expires_delta = timedelta(minutes=settings.jwt_access_token_expire_minutes)
-    expire = now + expires_delta
+    expires_delta = timedelta(minutes=settings.JWT_ACCESS_TOKEN_EXPIRE_MINUTES)
+    expire = datetime.now(timezone.utc) + expires_delta
 
-    payload = {
+    payload: dict[str, Any] = {
         "sub": subject,
         "type": "access",
-        "jti": jti,
-        "iat": now,
+        "jti": str(uuid.uuid4()),
         "exp": expire,
+        "iat": datetime.now(timezone.utc),
     }
-    token = jwt.encode(payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
-    return token, jti
+    if extra_claims:
+        payload.update(extra_claims)
+
+    token = jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+    return token, int(expires_delta.total_seconds())
 
 
 def create_refresh_token(
     subject: str,
-    expires_delta: Optional[timedelta] = None,
-) -> tuple[str, str]:
+    extra_claims: Optional[dict[str, Any]] = None,
+) -> tuple[str, int]:
     """
     Create a JWT refresh token.
-    Returns a tuple of (token_string, jti).
+    Returns (token_string, expires_in_seconds).
     """
-    jti = str(uuid.uuid4())
-    now = datetime.now(timezone.utc)
-    if expires_delta is None:
-        expires_delta = timedelta(days=settings.jwt_refresh_token_expire_days)
-    expire = now + expires_delta
+    expires_delta = timedelta(days=settings.JWT_REFRESH_TOKEN_EXPIRE_DAYS)
+    expire = datetime.now(timezone.utc) + expires_delta
 
-    payload = {
+    payload: dict[str, Any] = {
         "sub": subject,
         "type": "refresh",
-        "jti": jti,
-        "iat": now,
+        "jti": str(uuid.uuid4()),
         "exp": expire,
+        "iat": datetime.now(timezone.utc),
     }
-    token = jwt.encode(payload, settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
-    return token, jti
+    if extra_claims:
+        payload.update(extra_claims)
+
+    token = jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+    return token, int(expires_delta.total_seconds())
 
 
-def decode_token(token: str) -> Optional[dict]:
+def decode_token(token: str) -> Optional[dict[str, Any]]:
     """
     Decode and validate a JWT token.
     Returns the payload dict if valid, None otherwise.
@@ -82,8 +82,8 @@ def decode_token(token: str) -> Optional[dict]:
     try:
         payload = jwt.decode(
             token,
-            settings.jwt_secret_key,
-            algorithms=[settings.jwt_algorithm],
+            settings.JWT_SECRET_KEY,
+            algorithms=[settings.JWT_ALGORITHM],
         )
         return payload
     except JWTError:

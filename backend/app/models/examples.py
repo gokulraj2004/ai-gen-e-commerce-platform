@@ -3,38 +3,22 @@ EXAMPLE MODELS — Demonstrates SQLAlchemy ORM patterns.
 DELETE this entire file and create your own domain models.
 
 To remove:
-1. Delete this file (app/models/examples.py)
+1. Delete this file
 2. Remove imports from app/models/__init__.py
-3. Remove the 'items' relationship from User model
-4. Delete related schemas (app/schemas/examples.py)
-5. Delete related API routes (app/api/v1/examples.py)
-6. Delete related service (app/services/example_service.py)
-7. Generate a new Alembic migration to drop the tables
+3. Remove related schemas, services, and API routes
+4. Create your own models following the same patterns
 """
-from __future__ import annotations
-
 import uuid
-from datetime import datetime, timezone
-from typing import TYPE_CHECKING
+from datetime import datetime
 
-from sqlalchemy import (
-    Column,
-    DateTime,
-    ForeignKey,
-    String,
-    Table,
-    Text,
-    func,
-)
+from sqlalchemy import Column, DateTime, ForeignKey, String, Table, Text, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models.base import Base, TimestampMixin, UUIDPrimaryKeyMixin
 
-if TYPE_CHECKING:
-    from app.models.user import User
 
-# ── Association table for many-to-many: items <-> tags ──
+# Association table for many-to-many relationship between items and tags
 item_tags = Table(
     "item_tags",
     Base.metadata,
@@ -55,21 +39,27 @@ item_tags = Table(
         DateTime(timezone=True),
         nullable=False,
         server_default=func.now(),
-        default=lambda: datetime.now(timezone.utc),
     ),
 )
 
 
-class Item(Base, UUIDPrimaryKeyMixin, TimestampMixin):
+class Item(UUIDPrimaryKeyMixin, TimestampMixin, Base):
     """
     Generic item entity — demonstrates common model patterns.
-    REPLACE with your domain entities (e.g., Product, Post, Task, Project, etc.)
+    REPLACE with your domain entities (e.g., Product, BlogPost, Task, etc.)
     """
 
     __tablename__ = "items"
 
-    title: Mapped[str] = mapped_column(String(255), nullable=False, index=True)
-    description: Mapped[str | None] = mapped_column(Text, nullable=True)
+    title: Mapped[str] = mapped_column(
+        String(255),
+        nullable=False,
+        index=True,
+    )
+    description: Mapped[str | None] = mapped_column(
+        Text,
+        nullable=True,
+    )
     user_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("users.id", ondelete="CASCADE"),
@@ -77,9 +67,13 @@ class Item(Base, UUIDPrimaryKeyMixin, TimestampMixin):
         index=True,
     )
 
-    # ── Relationships ──
-    user: Mapped[User] = relationship("User", back_populates="items")
-    tags: Mapped[list[Tag]] = relationship(
+    # Relationships
+    user: Mapped["User"] = relationship(  # noqa: F821
+        "User",
+        back_populates="items",
+        lazy="selectin",
+    )
+    tags: Mapped[list["Tag"]] = relationship(
         "Tag",
         secondary=item_tags,
         back_populates="items",
@@ -87,29 +81,31 @@ class Item(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     )
 
     def __repr__(self) -> str:
-        return f"<Item(id={self.id}, title={self.title!r})>"
+        return f"<Item(id={self.id}, title={self.title})>"
 
 
-class Tag(Base, UUIDPrimaryKeyMixin):
+class Tag(UUIDPrimaryKeyMixin, Base):
     """
-    Generic tag entity — demonstrates many-to-many relationships.
+    Demonstrates many-to-many relationships.
     REPLACE with your domain entities.
     """
 
     __tablename__ = "tags"
 
     name: Mapped[str] = mapped_column(
-        String(100), unique=True, nullable=False, index=True
+        String(100),
+        unique=True,
+        nullable=False,
+        index=True,
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         nullable=False,
         server_default=func.now(),
-        default=lambda: datetime.now(timezone.utc),
     )
 
-    # ── Relationships ──
-    items: Mapped[list[Item]] = relationship(
+    # Relationships
+    items: Mapped[list["Item"]] = relationship(
         "Item",
         secondary=item_tags,
         back_populates="tags",
@@ -117,4 +113,4 @@ class Tag(Base, UUIDPrimaryKeyMixin):
     )
 
     def __repr__(self) -> str:
-        return f"<Tag(id={self.id}, name={self.name!r})>"
+        return f"<Tag(id={self.id}, name={self.name})>"

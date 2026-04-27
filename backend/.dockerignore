@@ -6,7 +6,9 @@ __pycache__/
 .venv/
 venv/
 env/
-.Python
+*.egg-info/
+dist/
+build/
 
 # Environment
 .env
@@ -37,5 +39,4 @@ LICENSE
 
 # Docker
 Dockerfile
-.dockerignore
-docker-compose*.yml
+docker-compose.yml

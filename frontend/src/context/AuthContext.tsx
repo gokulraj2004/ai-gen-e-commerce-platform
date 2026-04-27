@@ -1,47 +1,49 @@
-import React, { createContext, useState, useEffect, useCallback } from 'react';
-import axios from 'axios';
+import React, {
+  createContext,
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+} from 'react';
+import type { User, LoginRequest, RegisterRequest } from '../types';
+import { authApi } from '../api/auth';
+import { getAccessToken, clearTokens } from '../api/client';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api/v1';
-
-interface User {
-  id: string;
-  email: string;
-  full_name: string;
-  created_at: string;
-  updated_at: string;
-}
-
-interface AuthContextType {
+export interface AuthContextValue {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
-  login: (email: string, password: string) => Promise<void>;
-  register: (email: string, password: string, fullName: string) => Promise<void>;
+  login: (data: LoginRequest) => Promise<void>;
+  register: (data: RegisterRequest) => Promise<void>;
   logout: () => Promise<void>;
+  refreshUser: () => Promise<void>;
 }
 
-export const AuthContext = createContext<AuthContextType | null>(null);
+export const AuthContext = createContext<AuthContextValue | undefined>(
+  undefined,
+);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+interface AuthProviderProps {
+  children: React.ReactNode;
+}
+
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
-  const isAuthenticated = !!user;
-
   const fetchUser = useCallback(async () => {
-    const token = localStorage.getItem('access_token');
+    const token = getAccessToken();
     if (!token) {
+      setUser(null);
       setIsLoading(false);
       return;
     }
+
     try {
-      const response = await axios.get(`${API_BASE_URL}/auth/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setUser(response.data);
+      const userData = await authApi.getMe();
+      setUser(userData);
     } catch {
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
+      clearTokens();
       setUser(null);
     } finally {
       setIsLoading(false);
@@ -52,42 +54,42 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     fetchUser();
   }, [fetchUser]);
 
-  const login = async (email: string, password: string) => {
-    const response = await axios.post(`${API_BASE_URL}/auth/login`, { email, password });
-    localStorage.setItem('access_token', response.data.access_token);
-    localStorage.setItem('refresh_token', response.data.refresh_token);
-    await fetchUser();
-  };
+  const login = useCallback(
+    async (data: LoginRequest) => {
+      await authApi.login(data);
+      await fetchUser();
+    },
+    [fetchUser],
+  );
 
-  const register = async (email: string, password: string, fullName: string) => {
-    await axios.post(`${API_BASE_URL}/auth/register`, {
-      email,
-      password,
-      full_name: fullName,
-    });
-  };
+  const register = useCallback(async (data: RegisterRequest) => {
+    await authApi.register(data);
+  }, []);
 
-  const logout = async () => {
-    const refreshToken = localStorage.getItem('refresh_token');
-    const accessToken = localStorage.getItem('access_token');
+  const logout = useCallback(async () => {
     try {
-      if (refreshToken && accessToken) {
-        await axios.post(
-          `${API_BASE_URL}/auth/logout`,
-          { refresh_token: refreshToken },
-          { headers: { Authorization: `Bearer ${accessToken}` } },
-        );
-      }
+      await authApi.logout();
     } finally {
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
       setUser(null);
     }
-  };
+  }, []);
 
-  return (
-    <AuthContext.Provider value={{ user, isAuthenticated, isLoading, login, register, logout }}>
-      {children}
-    </AuthContext.Provider>
+  const refreshUser = useCallback(async () => {
+    await fetchUser();
+  }, [fetchUser]);
+
+  const value = useMemo<AuthContextValue>(
+    () => ({
+      user,
+      isAuthenticated: !!user,
+      isLoading,
+      login,
+      register,
+      logout,
+      refreshUser,
+    }),
+    [user, isLoading, login, register, logout, refreshUser],
   );
+
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

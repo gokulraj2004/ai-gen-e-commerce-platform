@@ -5,7 +5,7 @@ DELETE this entire file and create your own domain endpoints.
 To remove:
 1. Delete this file
 2. Remove the examples router import from app/api/router.py
-3. Create your domain router files in app/api/v1/
+3. Create your domain router files (e.g., v1/products.py, v1/orders.py)
 """
 from typing import Optional
 from uuid import UUID
@@ -43,7 +43,7 @@ async def list_items(
     tags: Optional[list[str]] = Query(default=None, description="Filter by tag names"),
     sort_by: str = Query(
         default="created_at_desc",
-        pattern="^(title_asc|title_desc|created_at_desc)$",
+        regex="^(title_asc|title_desc|created_at_desc)$",
         description="Sort order",
     ),
 ) -> PaginatedResponse[ItemResponse]:
@@ -84,7 +84,7 @@ async def get_item(
     "/items",
     response_model=ItemResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="Create a new item",
+    summary="Create an item",
 )
 async def create_item(
     data: ItemCreate,
@@ -108,19 +108,21 @@ async def update_item(
     db: DbSession,
     current_user: CurrentUser,
 ) -> ItemResponse:
-    """Update an item. Only the owner can update their items."""
+    """Update an existing item. Only the owner can update."""
     service = ExampleService(db)
-    updated_item = await service.update_item_with_ownership(
-        item_id=item_id,
-        data=data,
-        user_id=current_user.id,
-    )
-    if updated_item is None:
+    item = await service.get_item_model(item_id)
+    if item is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Item not found",
         )
-    return updated_item
+    if item.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to update this item",
+        )
+    updated = await service.update_item(item, data)
+    return updated
 
 
 @router.delete(
@@ -133,17 +135,20 @@ async def delete_item(
     db: DbSession,
     current_user: CurrentUser,
 ) -> None:
-    """Delete an item. Only the owner can delete their items."""
+    """Delete an item. Only the owner can delete."""
     service = ExampleService(db)
-    deleted = await service.delete_item_with_ownership(
-        item_id=item_id,
-        user_id=current_user.id,
-    )
-    if deleted is None:
+    item = await service.get_item_model(item_id)
+    if item is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Item not found",
         )
+    if item.user_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You do not have permission to delete this item",
+        )
+    await service.delete_item(item)
 
 
 # ── Tag Endpoints (EXAMPLE - DELETE & replace) ──
@@ -165,14 +170,14 @@ async def list_tags(db: DbSession) -> dict:
     "/tags",
     response_model=TagResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="Create a new tag",
+    summary="Create a tag",
 )
 async def create_tag(
     data: TagCreate,
     db: DbSession,
     current_user: CurrentUser,
 ) -> TagResponse:
-    """Create a new tag. Requires authentication."""
+    """Create a new tag."""
     service = ExampleService(db)
     tag = await service.create_tag(data)
     return tag
